@@ -33,3 +33,5 @@ Desktop.ini
 if (-not (Select-String -Path .gitignore -Pattern '^\.tools/$' -Quiet)) {
     Add-Content .gitignore "`n# Local Cursor tooling`n.tools/"
 }
+# Local Cursor tools
+.tools/
