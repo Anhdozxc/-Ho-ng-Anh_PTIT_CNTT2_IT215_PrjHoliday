@@ -42,7 +42,7 @@ public class SecurityConfig {
         };
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/login", "/register",
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico", "/login", "/register",
                         "/api/auth/register", "/error", "/forbidden").permitAll()
                 .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/**").authenticated()

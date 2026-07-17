@@ -184,8 +184,12 @@ record('login form invalid without credentials', !(await evaluate("document.quer
 await capture('login-desktop', 1440, 900);
 await capture('login-mobile', 375, 812, true);
 
+await navigate('/register');
+await capture('register-desktop', 1440, 900);
+await capture('register-mobile', 375, 812, true);
+
 record('USER form login redirects to dashboard', await login(credentials.user));
-await capture('dashboard-desktop', 1440, 900);
+await capture('dashboard-user-desktop', 1440, 900);
 await capture('dashboard-mobile', 375, 812, true);
 for (const [name, width, height] of [
   ['dashboard-tablet', 768, 1024],
@@ -195,7 +199,8 @@ for (const [name, width, height] of [
   await checkViewport(name, width, height);
 }
 await navigate('/trips');
-await capture('trip-list', 1440, 900);
+await capture('trips-desktop', 1440, 900);
+await capture('trips-mobile', 375, 812, true);
 
 await setViewport(375, 812, true);
 await evaluate("document.querySelector('.navbar-toggler')?.click()");
@@ -230,17 +235,23 @@ if (tripPath) {
 }
 
 await navigate('/profile');
-await capture('profile', 1440, 900);
+await capture('profile-desktop', 1440, 900);
+await capture('profile-mobile', 375, 812, true);
 await navigate('/definitely-not-a-real-page');
 record('friendly 404 renders', (await evaluate("document.body.innerText.includes('404')")));
 await capture('error-404', 1440, 900);
 
 await client.send('Network.clearBrowserCookies');
 record('ADMIN form login redirects to dashboard', await login(credentials.admin));
+await capture('dashboard-admin-desktop', 1440, 900);
 await navigate('/admin/destinations');
 await capture('admin-destinations', 1440, 900);
 await navigate('/admin/users');
 await capture('admin-users', 1440, 900);
+
+await navigate('/forbidden');
+record('friendly 403 renders', (await evaluate("document.body.innerText.includes('403')")));
+await capture('error-403', 1440, 900);
 
 record('no uncaught JavaScript errors', consoleErrors.length === 0, consoleErrors.join(' | '));
 record('no failed non-document resources', failedResources.length === 0, failedResources.join(' | '));
