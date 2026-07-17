@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Không có quyền - Holiday Planner</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body>
+<main class="error-shell">
+    <section class="card hp-card error-card page-enter" aria-labelledby="errorTitle">
+        <img class="error-illustration" th:src="@{/images/destinations/ha-noi.svg}"
+             data-fallback="/images/destination-fallback.svg" alt="Phong cảnh yên tĩnh">
+        <div class="error-code" aria-hidden="true">403</div>
+        <p class="eyebrow">Quyền truy cập</p>
+        <h1 id="errorTitle" class="h2">Bạn không có quyền vào khu vực này</h1>
+        <p class="text-secondary">Nội dung này nằm ngoài phạm vi tài khoản hiện tại. Dữ liệu của bạn vẫn được bảo vệ.</p>
+        <a class="btn btn-primary" th:href="@{/dashboard}">Về trang tổng quan</a>
+    </section>
+</main>
+<th:block th:replace="~{fragments :: scripts}"></th:block>
+</body>
+</html>

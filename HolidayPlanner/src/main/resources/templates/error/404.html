@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Không tìm thấy - Holiday Planner</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body>
+<main class="error-shell">
+    <section class="card hp-card error-card page-enter" aria-labelledby="errorTitle">
+        <img class="error-illustration" th:src="@{/images/destinations/da-lat.svg}"
+             data-fallback="/images/destination-fallback.svg" alt="Con đường giữa phong cảnh Đà Lạt">
+        <div class="error-code" aria-hidden="true">404</div>
+        <p class="eyebrow">Lạc một nhịp</p>
+        <h1 id="errorTitle" class="h2">Không tìm thấy nội dung</h1>
+        <p class="text-secondary" th:text="${message ?: 'Trang hoặc dữ liệu bạn yêu cầu không còn tồn tại.'}">Trang hoặc dữ liệu bạn yêu cầu không còn tồn tại.</p>
+        <a class="btn btn-primary" th:href="@{/dashboard}">Về trang tổng quan</a>
+    </section>
+</main>
+<th:block th:replace="~{fragments :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Tạo hoặc chỉnh sửa kế hoạch du lịch trên Holiday Planner.">
+    <title th:text="${pageTitle + ' - Holiday Planner'}">Kế hoạch - Holiday Planner</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments :: nav}"></div>
+<div th:replace="~{fragments :: alerts}"></div>
+<main class="container hp-main page-enter">
+    <a class="back-link" th:href="@{/trips}"><span aria-hidden="true">←</span><span>Quay lại danh sách</span></a>
+    <header class="page-heading" data-reveal>
+        <p class="eyebrow">Thiết kế hành trình</p>
+        <h1 th:text="${pageTitle}">Tạo kế hoạch</h1>
+        <p>Bắt đầu bằng những thông tin cốt lõi. Lịch trình, chi phí và checklist có thể được hoàn thiện sau khi lưu.</p>
+    </header>
+
+    <form th:action="${formAction}" th:object="${tripRequest}" method="post"
+          novalidate data-dirty-guard data-loading-overlay
+          data-confirm="Kế hoạch sẽ chuyển sang trạng thái kết thúc và không thể tiếp tục theo tiến độ thông thường."
+          data-confirm-title="Hủy kế hoạch này?" data-confirm-accept="Hủy kế hoạch"
+          data-confirm-when-field="status" data-confirm-when-value="CANCELLED">
+        <section class="form-summary mb-4" role="alert" th:if="${#fields.hasGlobalErrors()}">
+            <strong>Vui lòng kiểm tra lại kế hoạch</strong>
+            <ul class="mb-0 mt-1"><li th:each="error : ${#fields.globalErrors()}" th:text="${error}"></li></ul>
+        </section>
+
+        <div class="form-layout">
+            <div data-stagger>
+                <section class="card hp-card mb-4">
+                    <div class="card-body p-4 p-md-5">
+                        <span class="form-step">01 · Cảm hứng</span>
+                        <h2 class="h3 mt-2 mb-4">Chuyến đi của bạn</h2>
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label required" for="title">Tên chuyến đi</label>
+                                <input id="title" class="form-control" th:field="*{title}" maxlength="180" required
+                                       placeholder="Ví dụ: Đà Nẵng mùa biển xanh" aria-describedby="titleError">
+                                <div id="titleError" class="field-error" th:errors="*{title}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label required" for="tripStatus">Trạng thái</label>
+                                <select id="tripStatus" class="form-select" th:field="*{status}" required aria-describedby="statusError statusHint">
+                                    <option th:each="status : ${statuses}" th:value="${status}"
+                                            th:text="${status.name() == 'DRAFT' ? 'Nháp' : status.name() == 'PLANNED' ? 'Đã lập kế hoạch' : status.name() == 'ONGOING' ? 'Đang đi' : status.name() == 'COMPLETED' ? 'Hoàn thành' : 'Đã hủy'}">Nháp</option>
+                                </select>
+                                <div id="statusHint" class="field-hint mt-1">Trạng thái chỉ được chuyển theo tiến độ hợp lệ.</div>
+                                <div id="statusError" class="field-error" th:errors="*{status}"></div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label required" for="destination">Điểm đến</label>
+                                <select id="destination" class="form-select" th:field="*{destinationId}" required
+                                        data-destination-preview="destinationPreview" data-fallback="/images/destination-fallback.svg"
+                                        aria-describedby="destinationError destinationHint">
+                                    <option value="">Chọn điểm đến đang hoạt động</option>
+                                    <option th:each="destination : ${destinations}" th:value="${destination.id}"
+                                            th:text="${destination.name + ' · ' + destination.country + (destination.active ? '' : ' · Đã ẩn')}"
+                                            th:disabled="${!destination.active and destination.id != tripRequest.destinationId}"
+                                            th:attr="data-image=${destination.imageUrl ?: '/images/destination-fallback.svg'}">Điểm đến</option>
+                                </select>
+                                <div id="destinationHint" class="field-hint mt-1">Điểm đến đã ẩn hiện tại vẫn được giữ khi bạn chỉnh sửa mà không đổi lựa chọn.</div>
+                                <div id="destinationError" class="field-error" th:errors="*{destinationId}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card hp-card mb-4">
+                    <div class="card-body p-4 p-md-5">
+                        <span class="form-step">02 · Thời gian</span>
+                        <h2 class="h3 mt-2 mb-4">Khi nào chúng ta lên đường?</h2>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label required" for="startDate">Ngày bắt đầu</label>
+                                <input id="startDate" class="form-control" type="date" th:field="*{startDate}" required aria-describedby="startDateError">
+                                <div id="startDateError" class="field-error" th:errors="*{startDate}"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label required" for="endDate">Ngày kết thúc</label>
+                                <input id="endDate" class="form-control" type="date" th:field="*{endDate}" required aria-describedby="endDateError dateRangeError">
+                                <div id="endDateError" class="field-error" th:errors="*{endDate}"></div>
+                                <div id="dateRangeError" class="field-error" th:errors="*{dateRangeValid}"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label required" for="peopleCount">Số người tham gia</label>
+                                <input id="peopleCount" class="form-control" type="number" min="1" max="100"
+                                       th:field="*{peopleCount}" required aria-describedby="peopleCountError">
+                                <div id="peopleCountError" class="field-error" th:errors="*{peopleCount}"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="budget">Ngân sách dự kiến</label>
+                                <input id="budget" class="form-control" type="number" min="0" max="999999999999.99"
+                                       step="0.01" th:field="*{budget}" placeholder="Để trống nếu chưa dự kiến"
+                                       data-currency-preview="budgetPreview" aria-describedby="budgetError budgetPreview">
+                                <div id="budgetPreview" class="field-hint mt-1" aria-live="polite"></div>
+                                <div id="budgetError" class="field-error" th:errors="*{budget}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card hp-card">
+                    <div class="card-body p-4 p-md-5">
+                        <span class="form-step">03 · Chi tiết</span>
+                        <h2 class="h3 mt-2 mb-3">Điều bạn muốn ghi nhớ</h2>
+                        <label class="form-label" for="notes">Ghi chú</label>
+                        <textarea id="notes" class="form-control" rows="6" maxlength="2000" th:field="*{notes}"
+                                  placeholder="Mục tiêu chuyến đi, lưu ý đặc biệt, ý tưởng trải nghiệm…"
+                                  aria-describedby="notesError"></textarea>
+                        <div id="notesError" class="field-error" th:errors="*{notes}"></div>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="card hp-card sticky-preview" data-reveal>
+                <img id="destinationPreview" class="cover-image"
+                     th:src="${selectedDestinationImage ?: '/images/destination-fallback.svg'}"
+                     data-fallback="/images/destination-fallback.svg" alt="Xem trước điểm đến được chọn">
+                <div class="card-body p-4">
+                    <p class="eyebrow">Bản xem trước</p>
+                    <h2 class="h4">Sẵn sàng cho hành trình mới?</h2>
+                    <p class="small text-secondary">Ảnh điểm đến và thông tin của bạn sẽ tạo nên trang hành trình riêng sau khi lưu.</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" type="submit">Lưu kế hoạch</button>
+                        <a class="btn btn-light" th:href="@{/trips}">Hủy</a>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </form>
+</main>
+<th:block th:replace="~{fragments :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,367 @@
+{
+  "info": {
+    "name": "Holiday Planner API - SRS UC01-UC10 + Media",
+    "description": "Run folders 01-06 in order. Contains 61 requests, 93 pm.test assertions, and 25 collection variables. Dynamic dates and IDs avoid hard-coded database identifiers. Primary contracts use PUT /api/profile/password, PATCH checklist /state, and PATCH ADMIN /status. Media requests are skipped unless runMediaUploads=true and local image paths are configured. Only seeded local demo credentials are included; no Cloudinary secret is stored.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key":"baseUrl","value":"http://localhost:8080"},
+    {"key":"userEmail","value":"user@holidayplanner.vn"},
+    {"key":"userPassword","value":"user1234"},
+    {"key":"adminEmail","value":"admin@holidayplanner.vn"},
+    {"key":"adminPassword","value":"admin123"},
+    {"key":"postmanEmail","value":""},
+    {"key":"postmanDestinationName","value":""},
+    {"key":"postmanOriginalPassword","value":"postman123"},
+    {"key":"postmanPassword","value":"postman123"},
+    {"key":"postmanNewPassword","value":"postman456"},
+    {"key":"runMediaUploads","value":"false"},
+    {"key":"avatarImagePath","value":""},
+    {"key":"destinationImagePath","value":""},
+    {"key":"invalidImagePath","value":""},
+    {"key":"destinationId","value":""},
+    {"key":"adminDestinationId","value":""},
+    {"key":"userId","value":""},
+    {"key":"tripStartDate","value":""},
+    {"key":"tripEndDate","value":""},
+    {"key":"checklistDueDate","value":""},
+    {"key":"tripId","value":""},
+    {"key":"itineraryId","value":""},
+    {"key":"expenseId","value":""},
+    {"key":"checklistId","value":""},
+    {"key":"bookingId","value":""}
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "const iso = offset => { const d = new Date(); d.setUTCDate(d.getUTCDate() + offset); return d.toISOString().slice(0, 10); };",
+          "pm.collectionVariables.set('tripStartDate', iso(30));",
+          "pm.collectionVariables.set('tripEndDate', iso(32));",
+          "pm.collectionVariables.set('checklistDueDate', iso(28));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name":"01 - Authentication and error contract",
+      "item":[
+        {
+          "name":"Register unique USER - 201",
+          "event":[
+            {"listen":"prerequest","script":{"exec":["const runId = Date.now();","pm.collectionVariables.set('postmanEmail', `postman.${runId}@example.com`);","pm.collectionVariables.set('postmanDestinationName', `Postman Destination ${runId}`);","pm.collectionVariables.set('postmanPassword', pm.collectionVariables.get('postmanOriginalPassword')); "]}},
+            {"listen":"test","script":{"exec":["pm.test('HTTP 201', () => pm.response.to.have.status(201));","const json = pm.response.json();","pm.test('USER is active and password is hidden', () => { pm.expect(json.role).to.eql('USER'); pm.expect(json.status).to.eql('ACTIVE'); pm.expect(json).not.to.have.property('password'); });"]}}
+          ],
+          "request":{"auth":{"type":"noauth"},"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"fullName\": \"Postman Runner User\",\n  \"email\": \"{{postmanEmail}}\",\n  \"password\": \"{{postmanPassword}}\",\n  \"confirmPassword\": \"{{postmanPassword}}\"\n}"},"url":"{{baseUrl}}/api/auth/register"}
+        },
+        {
+          "name":"Duplicate email - 409",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 409', () => pm.response.to.have.status(409));","const json = pm.response.json();","pm.test('Standard error contract', () => { pm.expect(json.status).to.eql(409); pm.expect(json).to.have.keys('timestamp','status','error','message','fieldErrors'); });"]}}],
+          "request":{"auth":{"type":"noauth"},"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"fullName\": \"Duplicate\",\n  \"email\": \"{{postmanEmail}}\",\n  \"password\": \"{{postmanPassword}}\",\n  \"confirmPassword\": \"{{postmanPassword}}\"\n}"},"url":"{{baseUrl}}/api/auth/register"}
+        },
+        {
+          "name":"Registration validation - 400",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 400', () => pm.response.to.have.status(400));","const json = pm.response.json();","pm.test('Field errors included', () => { pm.expect(json.fieldErrors).to.have.property('email'); pm.expect(json.fieldErrors).to.have.property('password'); });"]}}],
+          "request":{"auth":{"type":"noauth"},"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{}"},"url":"{{baseUrl}}/api/auth/register"}
+        },
+        {
+          "name":"Password confirmation mismatch - 400",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 400', () => pm.response.to.have.status(400));","const json = pm.response.json();","pm.test('Confirmation validation is reported', () => { pm.expect(json.status).to.eql(400); pm.expect(json.fieldErrors).to.have.property('confirmPassword'); });"]}}],
+          "request":{"auth":{"type":"noauth"},"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"fullName\": \"Mismatch User\",\n  \"email\": \"mismatch.{{$timestamp}}@example.com\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"different456\"\n}"},"url":"{{baseUrl}}/api/auth/register"}
+        },
+        {
+          "name":"Trips without authentication - 401",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 401', () => pm.response.to.have.status(401));","pm.test('JSON response', () => pm.expect(pm.response.json().status).to.eql(401));"]}}],
+          "request":{"auth":{"type":"noauth"},"method":"GET","url":"{{baseUrl}}/api/trips"}
+        }
+      ]
+    },
+    {
+      "name":"02 - Profile, password and avatar",
+      "auth":{"type":"basic","basic":[{"key":"username","value":"{{postmanEmail}}","type":"string"},{"key":"password","value":"{{postmanPassword}}","type":"string"}]},
+      "item":[
+        {
+          "name":"Read current profile - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","const json = pm.response.json();","pm.test('Safe profile response', () => { pm.expect(json.email).to.eql(pm.collectionVariables.get('postmanEmail')); pm.expect(json.role).to.eql('USER'); pm.expect(json.status).to.eql('ACTIVE'); pm.expect(json).not.to.have.property('password'); });"]}}],
+          "request":{"method":"GET","url":"{{baseUrl}}/api/profile"}
+        },
+        {
+          "name":"Update profile - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","pm.test('Full name updated', () => pm.expect(pm.response.json().fullName).to.eql('Postman Profile Updated')); "]}}],
+          "request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"fullName\": \"Postman Profile Updated\"\n}"},"url":"{{baseUrl}}/api/profile"}
+        },
+        {
+          "name":"Change password - 204",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 204', () => pm.response.to.have.status(204));","pm.collectionVariables.set('postmanPassword', pm.collectionVariables.get('postmanNewPassword')); "]}}],
+          "request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"currentPassword\": \"{{postmanPassword}}\",\n  \"newPassword\": \"{{postmanNewPassword}}\",\n  \"confirmPassword\": \"{{postmanNewPassword}}\"\n}"},"url":"{{baseUrl}}/api/profile/password"}
+        },
+        {
+          "name":"New password authenticates - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 with new password', () => pm.response.to.have.status(200));","pm.test('Profile belongs to dynamic user', () => pm.expect(pm.response.json().email).to.eql(pm.collectionVariables.get('postmanEmail'))); "]}}],
+          "request":{"method":"GET","url":"{{baseUrl}}/api/profile"}
+        },
+        {
+          "name":"Old password is rejected - 401",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 401 with old password', () => pm.response.to.have.status(401));","pm.test('JSON error contract', () => pm.expect(pm.response.json().status).to.eql(401));"]}}],
+          "request":{"auth":{"type":"basic","basic":[{"key":"username","value":"{{postmanEmail}}","type":"string"},{"key":"password","value":"{{postmanOriginalPassword}}","type":"string"}]},"method":"GET","url":"{{baseUrl}}/api/profile"}
+        },
+        {
+          "name":"Upload avatar multipart - 200 (optional live media)",
+          "event":[{"listen":"prerequest","script":{"exec":["if (pm.collectionVariables.get('runMediaUploads') !== 'true') { pm.execution.skipRequest(); }"]}},{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","const json = pm.response.json();","pm.test('Cloud avatar URL returned', () => { pm.expect(json.avatarUrl).to.be.a('string').and.not.empty; pm.expect(json.avatarUrl).to.match(/^https:\\/\\//); });"]}}],
+          "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"image","type":"file","src":"{{avatarImagePath}}"}]},"url":"{{baseUrl}}/api/profile/avatar"}
+        },
+        {
+          "name":"Reject invalid avatar multipart - 400 (optional media)",
+          "event":[{"listen":"prerequest","script":{"exec":["if (pm.collectionVariables.get('runMediaUploads') !== 'true') { pm.execution.skipRequest(); }"]}},{"listen":"test","script":{"exec":["pm.test('HTTP 400', () => pm.response.to.have.status(400));","pm.test('Validation error contract', () => pm.expect(pm.response.json().status).to.eql(400));"]}}],
+          "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"image","type":"file","src":"{{invalidImagePath}}"}]},"url":"{{baseUrl}}/api/profile/avatar"}
+        },
+        {
+          "name":"Delete avatar - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","pm.test('Avatar reference cleared', () => pm.expect(pm.response.json().avatarUrl).to.eql(null));"]}}],
+          "request":{"method":"DELETE","url":"{{baseUrl}}/api/profile/avatar"}
+        }
+      ]
+    },
+    {
+      "name":"03 - USER happy path",
+      "auth":{"type":"basic","basic":[{"key":"username","value":"{{userEmail}}","type":"string"},{"key":"password","value":"{{userPassword}}","type":"string"}]},
+      "item":[
+        {
+          "name":"Personal dashboard - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","pm.test('Personal scope', () => pm.expect(pm.response.json().adminView).to.eql(false));"]}}],
+          "request":{"method":"GET","url":"{{baseUrl}}/api/dashboard"}
+        },
+        {
+          "name":"Resolve active destination and save destinationId - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","const json = pm.response.json();","pm.test('At least one active destination exists', () => pm.expect(json.content.length).to.be.above(0));","pm.collectionVariables.set('destinationId', json.content[0].id);"]}}],
+          "request":{"auth":{"type":"basic","basic":[{"key":"username","value":"{{adminEmail}}","type":"string"},{"key":"password","value":"{{adminPassword}}","type":"string"}]},"method":"GET","url":"{{baseUrl}}/api/admin/destinations?active=true&page=0&size=1"}
+        },
+        {
+          "name":"List/search/sort trips - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 paged trips', () => { pm.response.to.have.status(200); const json = pm.response.json(); pm.expect(json.content).to.be.an('array'); pm.expect(json).to.include.all.keys('page', 'size', 'totalElements', 'totalPages'); });"]}}],
+          "request":{"method":"GET","url":"{{baseUrl}}/api/trips?q=&status=PLANNED&sort=startDate&direction=asc"}
+        },
+        {
+          "name":"Create trip - 201 and save tripId",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 201', () => pm.response.to.have.status(201));","const json = pm.response.json();","pm.collectionVariables.set('tripId', json.id);","pm.test('Owner safe response and DRAFT default flow', () => { pm.expect(json.owner.email).to.eql(pm.collectionVariables.get('userEmail')); pm.expect(json.owner).not.to.have.property('password'); pm.expect(json.status).to.eql('DRAFT'); });"]}}],
+          "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Postman Demo Trip\",\n  \"destinationId\": {{destinationId}},\n  \"startDate\": \"{{tripStartDate}}\",\n  \"endDate\": \"{{tripEndDate}}\",\n  \"peopleCount\": 2,\n  \"budget\": 10000000,\n  \"status\": \"DRAFT\",\n  \"notes\": \"Luồng UC03 tạo từ Postman\"\n}"},"url":"{{baseUrl}}/api/trips"}
+        },
+        {
+          "name":"Update trip - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 and updated', () => { pm.response.to.have.status(200); const json=pm.response.json(); pm.expect(json.title).to.eql('Postman Demo Trip Updated'); pm.expect(json.status).to.eql('PLANNED'); });"]}}],
+          "request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Postman Demo Trip Updated\",\n  \"destinationId\": {{destinationId}},\n  \"startDate\": \"{{tripStartDate}}\",\n  \"endDate\": \"{{tripEndDate}}\",\n  \"peopleCount\": 3,\n  \"budget\": 12000000,\n  \"status\": \"PLANNED\",\n  \"notes\": \"Luồng update UC03\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}"}
+        },
+        {
+          "name":"Add itinerary - 201 and save itineraryId",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 201', () => pm.response.to.have.status(201));","pm.collectionVariables.set('itineraryId', pm.response.json().id);"]}}],
+          "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"dayNo\": 1,\n  \"fromTime\": \"08:00\",\n  \"toTime\": \"10:00\",\n  \"activity\": \"Tham quan trung tâm\",\n  \"location\": \"Đà Nẵng\",\n  \"note\": \"Mang theo nước\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/itinerary"}
+        },
+        {
+          "name":"Update itinerary - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 and updated', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().activity).to.eql('Tham quan bảo tàng'); });"]}}],
+          "request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"dayNo\": 1,\n  \"fromTime\": \"08:00\",\n  \"toTime\": \"10:00\",\n  \"activity\": \"Tham quan bảo tàng\",\n  \"location\": \"Trung tâm\",\n  \"note\": \"Đã cập nhật\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/itinerary/{{itineraryId}}"}
+        },
+        {
+          "name":"Overlapping itinerary - 409",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 409 overlap', () => { pm.response.to.have.status(409); pm.expect(pm.response.json().message).to.include('trùng'); });"]}}],
+          "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"dayNo\": 1,\n  \"fromTime\": \"09:30\",\n  \"toTime\": \"11:00\",\n  \"activity\": \"Lịch bị chồng\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/itinerary"}
+        },
+        {
+          "name":"Add expense - 201 and save expenseId",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 201', () => pm.response.to.have.status(201));","pm.collectionVariables.set('expenseId', pm.response.json().id);"]}}],
+          "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"category\": \"TRANSPORT\",\n  \"amount\": 1500000.50,\n  \"spentDate\": \"{{tripStartDate}}\",\n  \"note\": \"Vé máy bay\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/expenses"}
+        },
+        {
+          "name":"Update expense - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 and BigDecimal value', () => { pm.response.to.have.status(200); pm.expect(Number(pm.response.json().amount)).to.eql(1600000.5); });"]}}],
+          "request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"category\": \"TRANSPORT\",\n  \"amount\": 1600000.50,\n  \"spentDate\": \"{{tripStartDate}}\",\n  \"note\": \"Vé máy bay cập nhật\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/expenses/{{expenseId}}"}
+        },
+        {
+          "name":"Add checklist - 201 and save checklistId",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 201', () => pm.response.to.have.status(201));","const json=pm.response.json();","pm.collectionVariables.set('checklistId', json.id);","pm.test('New checklist defaults to not done', () => pm.expect(json.done).to.eql(false));"]}}],
+          "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Chuẩn bị CCCD\",\n  \"category\": \"Giấy tờ\",\n  \"dueDate\": \"{{checklistDueDate}}\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/checklist"}
+        },
+        {
+          "name":"Update checklist - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 and updated', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().title).to.eql('Chuẩn bị hộ chiếu'); });"]}}],
+          "request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Chuẩn bị hộ chiếu\",\n  \"category\": \"Giấy tờ\",\n  \"dueDate\": \"{{checklistDueDate}}\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/checklist/{{checklistId}}"}
+        },
+        {
+          "name":"Set checklist done=true - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 and done', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().done).to.eql(true); });"]}}],
+          "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"done\": true\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/checklist/{{checklistId}}/state"}
+        },
+        {
+          "name":"Repeat checklist done=true is idempotent - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","pm.test('Desired state is stable', () => pm.expect(pm.response.json().done).to.eql(true));"]}}],
+          "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"done\": true\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/checklist/{{checklistId}}/state"}
+        },
+        {
+          "name":"Add booking - 201 and save bookingId",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 201', () => pm.response.to.have.status(201));","pm.collectionVariables.set('bookingId', pm.response.json().id);"]}}],
+          "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"type\": \"HOTEL\",\n  \"provider\": \"Holiday Hotel\",\n  \"bookingCode\": null,\n  \"price\": 2400000,\n  \"note\": \"Mã đặt chỗ được phép trống\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/bookings"}
+        },
+        {
+          "name":"Update booking - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 and updated', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().bookingCode).to.eql('HP2026'); });"]}}],
+          "request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"type\": \"HOTEL\",\n  \"provider\": \"Holiday Hotel\",\n  \"bookingCode\": \"HP2026\",\n  \"price\": 2500000,\n  \"note\": \"Check-in sau 14:00\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/bookings/{{bookingId}}"}
+        },
+        {
+          "name":"Aggregate trip detail - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 with all child collections', () => { pm.response.to.have.status(200); const j=pm.response.json(); pm.expect(j.itinerary).to.have.lengthOf(1); pm.expect(j.expenses).to.have.lengthOf(1); pm.expect(j.checklist).to.have.lengthOf(1); pm.expect(j.bookings).to.have.lengthOf(1); });"]}}],
+          "request":{"method":"GET","url":"{{baseUrl}}/api/trips/{{tripId}}"}
+        },
+        {
+          "name":"Filter trip expenses by category - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","const expenses=pm.response.json().expenses;","pm.test('Only TRANSPORT expenses are returned', () => { pm.expect(expenses).to.have.lengthOf(1); pm.expect(expenses.every(e => e.category === 'TRANSPORT')).to.eql(true); });"]}}],
+          "request":{"method":"GET","url":"{{baseUrl}}/api/trips/{{tripId}}?expenseCategory=TRANSPORT"}
+        }
+      ]
+    },
+    {
+      "name":"04 - Authorization and validation negatives",
+      "item":[
+        {
+          "name":"Another USER cannot read trip - 403",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 403 JSON', () => { pm.response.to.have.status(403); pm.expect(pm.response.json().status).to.eql(403); });"]}}],
+          "request":{"auth":{"type":"basic","basic":[{"key":"username","value":"{{postmanEmail}}","type":"string"},{"key":"password","value":"{{postmanPassword}}","type":"string"}]},"method":"GET","url":"{{baseUrl}}/api/trips/{{tripId}}"}
+        },
+        {
+          "name":"Another USER cannot update child record - 403",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 403 JSON', () => pm.response.to.have.status(403));","pm.test('Cross-owner error contract', () => pm.expect(pm.response.json().status).to.eql(403));"]}}],
+          "request":{"auth":{"type":"basic","basic":[{"key":"username","value":"{{postmanEmail}}","type":"string"},{"key":"password","value":"{{postmanPassword}}","type":"string"}]},"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"category\": \"TRANSPORT\",\n  \"amount\": 1,\n  \"spentDate\": \"{{tripStartDate}}\",\n  \"note\": \"Cross-owner attempt\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/expenses/{{expenseId}}"}
+        },
+        {
+          "name":"USER cannot access Admin API - 403",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 403 JSON', () => { pm.response.to.have.status(403); pm.expect(pm.response.json().status).to.eql(403); });"]}}],
+          "request":{"auth":{"type":"basic","basic":[{"key":"username","value":"{{userEmail}}","type":"string"},{"key":"password","value":"{{userPassword}}","type":"string"}]},"method":"GET","url":"{{baseUrl}}/api/admin/users"}
+        },
+        {
+          "name":"Invalid trip dates - 400",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 400', () => pm.response.to.have.status(400));"]}}],
+          "request":{"auth":{"type":"basic","basic":[{"key":"username","value":"{{userEmail}}","type":"string"},{"key":"password","value":"{{userPassword}}","type":"string"}]},"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Invalid dates\",\n  \"destinationId\": {{destinationId}},\n  \"startDate\": \"{{tripEndDate}}\",\n  \"endDate\": \"{{tripStartDate}}\",\n  \"peopleCount\": 1,\n  \"budget\": 0,\n  \"status\": \"DRAFT\"\n}"},"url":"{{baseUrl}}/api/trips"}
+        },
+        {
+          "name":"Incomplete itinerary time pair - 400",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 400', () => pm.response.to.have.status(400));","pm.test('Field validation returned', () => { const json=pm.response.json(); pm.expect(json.status).to.eql(400); pm.expect(json.fieldErrors).to.have.property('timeRangeComplete'); });"]}}],
+          "request":{"auth":{"type":"basic","basic":[{"key":"username","value":"{{userEmail}}","type":"string"},{"key":"password","value":"{{userPassword}}","type":"string"}]},"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"dayNo\": 2,\n  \"fromTime\": \"08:00\",\n  \"activity\": \"Missing end time\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/itinerary"}
+        },
+        {
+          "name":"Negative expense amount - 400",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 400', () => pm.response.to.have.status(400));","pm.test('Amount field is rejected', () => pm.expect(pm.response.json().fieldErrors).to.have.property('amount')); "]}}],
+          "request":{"auth":{"type":"basic","basic":[{"key":"username","value":"{{userEmail}}","type":"string"},{"key":"password","value":"{{userPassword}}","type":"string"}]},"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"category\": \"FOOD\",\n  \"amount\": -1,\n  \"spentDate\": \"{{tripStartDate}}\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}/expenses"}
+        },
+        {
+          "name":"Illegal trip transition PLANNED to COMPLETED - 409",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 409', () => pm.response.to.have.status(409));","pm.test('Conflict error contract', () => pm.expect(pm.response.json().status).to.eql(409));"]}}],
+          "request":{"auth":{"type":"basic","basic":[{"key":"username","value":"{{userEmail}}","type":"string"},{"key":"password","value":"{{userPassword}}","type":"string"}]},"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Postman Demo Trip Updated\",\n  \"destinationId\": {{destinationId}},\n  \"startDate\": \"{{tripStartDate}}\",\n  \"endDate\": \"{{tripEndDate}}\",\n  \"peopleCount\": 3,\n  \"budget\": 12000000,\n  \"status\": \"COMPLETED\"\n}"},"url":"{{baseUrl}}/api/trips/{{tripId}}"}
+        }
+      ]
+    },
+    {
+      "name":"05 - ADMIN APIs",
+      "auth":{"type":"basic","basic":[{"key":"username","value":"{{adminEmail}}","type":"string"},{"key":"password","value":"{{adminPassword}}","type":"string"}]},
+      "item":[
+        {
+          "name":"System dashboard - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('Admin system scope', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().adminView).to.eql(true); });"]}}],
+          "request":{"method":"GET","url":"{{baseUrl}}/api/dashboard"}
+        },
+        {
+          "name":"List destination page - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","const json=pm.response.json();","pm.test('Paged destination response', () => { pm.expect(json.content).to.be.an('array'); pm.expect(json.page).to.eql(0); pm.expect(json.size).to.eql(20); pm.expect(json).to.have.property('totalElements'); });"]}}],
+          "request":{"method":"GET","url":"{{baseUrl}}/api/admin/destinations?page=0&size=20"}
+        },
+        {
+          "name":"Create destination - 201 and save ID",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 201', () => pm.response.to.have.status(201));","const json=pm.response.json();","pm.collectionVariables.set('adminDestinationId', json.id);","pm.test('URL fallback is retained', () => pm.expect(json.imageUrl).to.eql('/images/destination-fallback.svg')); "]}}],
+          "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"{{postmanDestinationName}}\",\n  \"city\": \"Hạ Long\",\n  \"country\": \"Việt Nam\",\n  \"description\": \"Điểm đến dùng cho smoke test\",\n  \"imageUrl\": \"/images/destination-fallback.svg\",\n  \"active\": true\n}"},"url":"{{baseUrl}}/api/admin/destinations"}
+        },
+        {
+          "name":"Update destination - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 and metadata updated', () => { pm.response.to.have.status(200); const json=pm.response.json(); pm.expect(json.description).to.eql('Đã cập nhật'); pm.expect(json.active).to.eql(true); });"]}}],
+          "request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"{{postmanDestinationName}}\",\n  \"city\": \"Hạ Long\",\n  \"country\": \"Việt Nam\",\n  \"description\": \"Đã cập nhật\",\n  \"imageUrl\": \"/images/destination-fallback.svg\",\n  \"active\": true\n}"},"url":"{{baseUrl}}/api/admin/destinations/{{adminDestinationId}}"}
+        },
+        {
+          "name":"Hide destination with desired state - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 and hidden', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().active).to.eql(false); });"]}}],
+          "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"active\": false\n}"},"url":"{{baseUrl}}/api/admin/destinations/{{adminDestinationId}}/status"}
+        },
+        {
+          "name":"Search/filter/page destinations - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","const json=pm.response.json();","pm.test('Search and active filter applied', () => { pm.expect(json.page).to.eql(0); pm.expect(json.size).to.eql(5); pm.expect(json.content).to.have.lengthOf(1); pm.expect(json.content[0].id.toString()).to.eql(pm.collectionVariables.get('adminDestinationId').toString()); pm.expect(json.content[0].active).to.eql(false); });"]}}],
+          "request":{"method":"GET","url":"{{baseUrl}}/api/admin/destinations?q={{postmanDestinationName}}&active=false&page=0&size=5"}
+        },
+        {
+          "name":"Show destination again - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 and active', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().active).to.eql(true); });"]}}],
+          "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"active\": true\n}"},"url":"{{baseUrl}}/api/admin/destinations/{{adminDestinationId}}/status"}
+        },
+        {
+          "name":"Upload destination image multipart - 200 (optional live media)",
+          "event":[{"listen":"prerequest","script":{"exec":["if (pm.collectionVariables.get('runMediaUploads') !== 'true') { pm.execution.skipRequest(); }"]}},{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","pm.test('Cloud image URL returned', () => { const url=pm.response.json().imageUrl; pm.expect(url).to.be.a('string').and.not.empty; pm.expect(url).to.match(/^https:\\/\\//); });"]}}],
+          "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"image","type":"file","src":"{{destinationImagePath}}"}]},"url":"{{baseUrl}}/api/admin/destinations/{{adminDestinationId}}/image"}
+        },
+        {
+          "name":"Reject invalid destination image - 400 (optional media)",
+          "event":[{"listen":"prerequest","script":{"exec":["if (pm.collectionVariables.get('runMediaUploads') !== 'true') { pm.execution.skipRequest(); }"]}},{"listen":"test","script":{"exec":["pm.test('HTTP 400', () => pm.response.to.have.status(400));","pm.test('Validation error contract', () => pm.expect(pm.response.json().status).to.eql(400));"]}}],
+          "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"image","type":"file","src":"{{invalidImagePath}}"}]},"url":"{{baseUrl}}/api/admin/destinations/{{adminDestinationId}}/image"}
+        },
+        {
+          "name":"Delete destination image - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","pm.test('Default fallback restored', () => pm.expect(pm.response.json().imageUrl).to.eql('/images/destination-fallback.svg')); "]}}],
+          "request":{"method":"DELETE","url":"{{baseUrl}}/api/admin/destinations/{{adminDestinationId}}/image"}
+        },
+        {
+          "name":"Find Postman user and save userId",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200 paged response', () => pm.response.to.have.status(200));","const json=pm.response.json();","pm.test('Password hidden', () => { pm.expect(json.content).to.have.lengthOf(1); pm.expect(json.content[0]).not.to.have.property('password'); });","pm.collectionVariables.set('userId', json.content[0].id);"]}}],
+          "request":{"method":"GET","url":"{{baseUrl}}/api/admin/users?q={{postmanEmail}}&role=USER&status=ACTIVE&page=0&size=10"}
+        },
+        {
+          "name":"Set target USER status=LOCKED - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('USER locked', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('LOCKED'); });"]}}],
+          "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"LOCKED\"\n}"},"url":"{{baseUrl}}/api/admin/users/{{userId}}/status"}
+        },
+        {
+          "name":"Repeat status=LOCKED is idempotent - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 200', () => pm.response.to.have.status(200));","pm.test('Desired user state is stable', () => pm.expect(pm.response.json().status).to.eql('LOCKED')); "]}}],
+          "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"LOCKED\"\n}"},"url":"{{baseUrl}}/api/admin/users/{{userId}}/status"}
+        },
+        {
+          "name":"Locked USER cannot authenticate - 401",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 401 for locked account', () => pm.response.to.have.status(401));","pm.test('JSON error contract', () => pm.expect(pm.response.json().status).to.eql(401));"]}}],
+          "request":{"auth":{"type":"basic","basic":[{"key":"username","value":"{{postmanEmail}}","type":"string"},{"key":"password","value":"{{postmanPassword}}","type":"string"}]},"method":"GET","url":"{{baseUrl}}/api/profile"}
+        },
+        {
+          "name":"Set target USER status=ACTIVE - 200",
+          "event":[{"listen":"test","script":{"exec":["pm.test('USER active again', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('ACTIVE'); });"]}}],
+          "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"ACTIVE\"\n}"},"url":"{{baseUrl}}/api/admin/users/{{userId}}/status"}
+        },
+        {
+          "name":"Missing destination - 404",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 404', () => pm.response.to.have.status(404));","pm.test('JSON error contract', () => pm.expect(pm.response.json().status).to.eql(404));"]}}],
+          "request":{"method":"DELETE","url":"{{baseUrl}}/api/admin/destinations/999999999"}
+        },
+        {
+          "name":"Deactivate created destination - 204",
+          "event":[{"listen":"test","script":{"exec":["pm.test('HTTP 204', () => pm.response.to.have.status(204));"]}}],
+          "request":{"method":"DELETE","url":"{{baseUrl}}/api/admin/destinations/{{adminDestinationId}}"}
+        }
+      ]
+    },
+    {
+      "name":"06 - Cleanup created trip",
+      "auth":{"type":"basic","basic":[{"key":"username","value":"{{userEmail}}","type":"string"},{"key":"password","value":"{{userPassword}}","type":"string"}]},
+      "item":[
+        {"name":"Delete itinerary - 204","event":[{"listen":"test","script":{"exec":["pm.test('HTTP 204', () => pm.response.to.have.status(204));"]}}],"request":{"method":"DELETE","url":"{{baseUrl}}/api/trips/{{tripId}}/itinerary/{{itineraryId}}"}},
+        {"name":"Delete expense - 204","event":[{"listen":"test","script":{"exec":["pm.test('HTTP 204', () => pm.response.to.have.status(204));"]}}],"request":{"method":"DELETE","url":"{{baseUrl}}/api/trips/{{tripId}}/expenses/{{expenseId}}"}},
+        {"name":"Delete checklist - 204","event":[{"listen":"test","script":{"exec":["pm.test('HTTP 204', () => pm.response.to.have.status(204));"]}}],"request":{"method":"DELETE","url":"{{baseUrl}}/api/trips/{{tripId}}/checklist/{{checklistId}}"}},
+        {"name":"Delete booking - 204","event":[{"listen":"test","script":{"exec":["pm.test('HTTP 204', () => pm.response.to.have.status(204));"]}}],"request":{"method":"DELETE","url":"{{baseUrl}}/api/trips/{{tripId}}/bookings/{{bookingId}}"}},
+        {"name":"Soft-delete trip - 204","event":[{"listen":"test","script":{"exec":["pm.test('HTTP 204', () => pm.response.to.have.status(204));"]}}],"request":{"method":"DELETE","url":"{{baseUrl}}/api/trips/{{tripId}}"}},
+        {"name":"Deleted trip is not found - 404","event":[{"listen":"test","script":{"exec":["pm.test('HTTP 404', () => { pm.response.to.have.status(404); pm.expect(pm.response.json().status).to.eql(404); });"]}}],"request":{"method":"GET","url":"{{baseUrl}}/api/trips/{{tripId}}"}}
+      ]
+    }
+  ]
+}

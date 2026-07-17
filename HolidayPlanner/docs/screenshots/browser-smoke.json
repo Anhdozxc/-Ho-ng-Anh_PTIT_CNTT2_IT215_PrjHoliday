@@ -1,0 +1,235 @@
+{
+  "generatedAt": "2026-07-17T05:15:18.487Z",
+  "baseUrl": "http://127.0.0.1:8080",
+  "passed": 45,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "login form invalid without credentials",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "login-desktop: no horizontal overflow",
+      "passed": true,
+      "detail": "/login @ 1440px"
+    },
+    {
+      "name": "login-desktop: page has title and h1",
+      "passed": true,
+      "detail": "Đăng nhập - Holiday Planner"
+    },
+    {
+      "name": "login-mobile: no horizontal overflow",
+      "passed": true,
+      "detail": "/login @ 375px"
+    },
+    {
+      "name": "login-mobile: page has title and h1",
+      "passed": true,
+      "detail": "Đăng nhập - Holiday Planner"
+    },
+    {
+      "name": "USER form login redirects to dashboard",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard-desktop: no horizontal overflow",
+      "passed": true,
+      "detail": "/dashboard @ 1440px"
+    },
+    {
+      "name": "dashboard-desktop: page has title and h1",
+      "passed": true,
+      "detail": "Tổng quan - Holiday Planner"
+    },
+    {
+      "name": "dashboard-mobile: no horizontal overflow",
+      "passed": true,
+      "detail": "/dashboard @ 377px"
+    },
+    {
+      "name": "dashboard-mobile: page has title and h1",
+      "passed": true,
+      "detail": "Tổng quan - Holiday Planner"
+    },
+    {
+      "name": "dashboard-tablet: no horizontal overflow",
+      "passed": true,
+      "detail": "/dashboard @ 768px"
+    },
+    {
+      "name": "dashboard-laptop: no horizontal overflow",
+      "passed": true,
+      "detail": "/dashboard @ 1024px"
+    },
+    {
+      "name": "dashboard-wide: no horizontal overflow",
+      "passed": true,
+      "detail": "/dashboard @ 1920px"
+    },
+    {
+      "name": "trip-list: no horizontal overflow",
+      "passed": true,
+      "detail": "/trips @ 1440px"
+    },
+    {
+      "name": "trip-list: page has title and h1",
+      "passed": true,
+      "detail": "Kế hoạch - Holiday Planner"
+    },
+    {
+      "name": "mobile navbar opens",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "trip list exposes a detail link",
+      "passed": true,
+      "detail": "/trips/8"
+    },
+    {
+      "name": "trip-detail-overview: no horizontal overflow",
+      "passed": true,
+      "detail": "/trips/8 @ 1440px"
+    },
+    {
+      "name": "trip-detail-overview: page has title and h1",
+      "passed": true,
+      "detail": "Tokyo mùa thu - Holiday Planner"
+    },
+    {
+      "name": "trip tab itinerary activates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "trip-detail-itinerary: no horizontal overflow",
+      "passed": true,
+      "detail": "/trips/8 @ 1440px"
+    },
+    {
+      "name": "trip-detail-itinerary: page has title and h1",
+      "passed": true,
+      "detail": "Tokyo mùa thu - Holiday Planner"
+    },
+    {
+      "name": "trip tab expenses activates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "trip-detail-expenses: no horizontal overflow",
+      "passed": true,
+      "detail": "/trips/8 @ 1440px"
+    },
+    {
+      "name": "trip-detail-expenses: page has title and h1",
+      "passed": true,
+      "detail": "Tokyo mùa thu - Holiday Planner"
+    },
+    {
+      "name": "trip tab checklist activates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "trip-detail-checklist: no horizontal overflow",
+      "passed": true,
+      "detail": "/trips/8 @ 1440px"
+    },
+    {
+      "name": "trip-detail-checklist: page has title and h1",
+      "passed": true,
+      "detail": "Tokyo mùa thu - Holiday Planner"
+    },
+    {
+      "name": "trip tab bookings activates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "trip-detail-bookings: no horizontal overflow",
+      "passed": true,
+      "detail": "/trips/8 @ 1440px"
+    },
+    {
+      "name": "trip-detail-bookings: page has title and h1",
+      "passed": true,
+      "detail": "Tokyo mùa thu - Holiday Planner"
+    },
+    {
+      "name": "confirmation modal opens",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "confirmation modal closes with Escape",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "profile: no horizontal overflow",
+      "passed": true,
+      "detail": "/profile @ 1440px"
+    },
+    {
+      "name": "profile: page has title and h1",
+      "passed": true,
+      "detail": "Hồ sơ - Holiday Planner"
+    },
+    {
+      "name": "friendly 404 renders",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "error-404: no horizontal overflow",
+      "passed": true,
+      "detail": "/definitely-not-a-real-page @ 1440px"
+    },
+    {
+      "name": "error-404: page has title and h1",
+      "passed": true,
+      "detail": "Không tìm thấy - Holiday Planner"
+    },
+    {
+      "name": "ADMIN form login redirects to dashboard",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "admin-destinations: no horizontal overflow",
+      "passed": true,
+      "detail": "/admin/destinations @ 1440px"
+    },
+    {
+      "name": "admin-destinations: page has title and h1",
+      "passed": true,
+      "detail": "Điểm đến - Holiday Planner"
+    },
+    {
+      "name": "admin-users: no horizontal overflow",
+      "passed": true,
+      "detail": "/admin/users @ 1440px"
+    },
+    {
+      "name": "admin-users: page has title and h1",
+      "passed": true,
+      "detail": "Người dùng - Holiday Planner"
+    },
+    {
+      "name": "no uncaught JavaScript errors",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "no failed non-document resources",
+      "passed": true,
+      "detail": ""
+    }
+  ],
+  "consoleErrors": [],
+  "failedResources": []
+}

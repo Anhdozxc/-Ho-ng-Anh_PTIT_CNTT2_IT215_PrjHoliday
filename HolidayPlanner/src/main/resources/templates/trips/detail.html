@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Chi tiết lịch trình, chi phí, checklist và ghi chú đặt dịch vụ của chuyến đi.">
+    <title th:text="${trip.title + ' - Holiday Planner'}">Chi tiết chuyến đi - Holiday Planner</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments :: nav}"></div>
+<div th:replace="~{fragments :: alerts}"></div>
+<main class="container hp-main page-enter">
+    <a class="back-link mb-3" th:href="@{/trips}"><span aria-hidden="true">←</span><span>Danh sách kế hoạch</span></a>
+
+    <section class="cinematic-hero trip-detail-hero" data-parallax aria-labelledby="tripTitle">
+        <img class="hero-image" th:src="${trip.destination.imageUrl ?: '/images/destination-fallback.svg'}"
+             data-fallback="/images/destination-fallback.svg" th:alt="${'Phong cảnh ' + trip.destination.name}">
+        <div class="cinematic-hero-content" data-reveal>
+            <div class="trip-hero-topline">
+                <span class="hp-badge"
+                      th:classappend="${trip.status.name() == 'DRAFT' ? ' hp-badge-draft' : trip.status.name() == 'PLANNED' ? ' hp-badge-planned' : trip.status.name() == 'ONGOING' ? ' hp-badge-ongoing' : trip.status.name() == 'COMPLETED' ? ' hp-badge-completed' : ' hp-badge-cancelled'}"
+                      th:text="${trip.status.name() == 'DRAFT' ? 'Nháp' : trip.status.name() == 'PLANNED' ? 'Đã lập kế hoạch' : trip.status.name() == 'ONGOING' ? 'Đang đi' : trip.status.name() == 'COMPLETED' ? 'Hoàn thành' : 'Đã hủy'}">Nháp</span>
+                <span class="eyebrow mb-0" th:text="${trip.destination.name + ' · ' + trip.destination.country}">Điểm đến</span>
+            </div>
+            <h1 id="tripTitle" class="hp-display mb-3" th:text="${trip.title}">Tên chuyến đi</h1>
+            <div class="trip-hero-meta">
+                <span th:text="${#temporals.format(trip.startDate,'dd/MM/yyyy') + ' – ' + #temporals.format(trip.endDate,'dd/MM/yyyy')}">01/01/2026 – 03/01/2026</span>
+                <span th:text="${trip.peopleCount + ' người tham gia'}">1 người tham gia</span>
+                <span th:if="${!editable}" th:text="${'Chủ sở hữu: ' + trip.owner.fullName}">Chủ sở hữu</span>
+            </div>
+            <div class="trip-hero-actions" th:if="${editable}">
+                <a class="btn btn-light" th:href="@{/trips/{id}/edit(id=${trip.id})}">Chỉnh sửa</a>
+                <form th:action="@{/trips/{id}/delete(id=${trip.id})}" method="post"
+                      data-confirm="Kế hoạch sẽ được đưa ra khỏi danh sách đang hoạt động."
+                      data-confirm-title="Xóa kế hoạch này?" data-confirm-accept="Xóa kế hoạch">
+                    <button class="btn btn-on-image" type="submit">Xóa</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <div class="context-note context-note-info mt-3" th:if="${!editable}" role="status">
+        <span aria-hidden="true">i</span>
+        <div><strong>Chế độ hỗ trợ chỉ đọc</strong><p>Quản trị viên có thể xem để hỗ trợ nhưng không thể thay đổi dữ liệu riêng của người dùng.</p></div>
+    </div>
+    <div class="context-note context-note-danger mt-3" th:if="${overBudget}" role="alert">
+        <span aria-hidden="true">!</span>
+        <div><strong>Đã vượt ngân sách</strong><p>Tổng chi hiện cao hơn ngân sách dự kiến. Hãy rà soát các khoản chi trước khi tiếp tục.</p></div>
+    </div>
+
+    <section class="trip-detail-stats" aria-label="Tóm tắt chuyến đi">
+        <div class="row g-3" data-stagger>
+            <div class="col-sm-6 col-xl-3">
+                <article class="stat-card">
+                    <div class="stat-icon" aria-hidden="true">₫</div>
+                    <div class="stat-label">Ngân sách dự kiến</div>
+                    <div class="h5 mt-2 mb-0" th:text="${trip.budget != null ? #numbers.formatDecimal(trip.budget,0,'COMMA',0,'POINT') + ' ₫' : 'Chưa đặt'}">0 ₫</div>
+                </article>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <article class="stat-card">
+                    <div class="stat-icon" aria-hidden="true">02</div>
+                    <div class="stat-label">Tổng đã chi</div>
+                    <div class="h5 mt-2 mb-0" th:classappend="${overBudget ? ' text-danger' : ''}"
+                         th:text="${#numbers.formatDecimal(totalExpense,0,'COMMA',0,'POINT') + ' ₫'}">0 ₫</div>
+                </article>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <article class="stat-card">
+                    <div class="stat-icon" aria-hidden="true">03</div>
+                    <div class="d-flex justify-content-between gap-2"><span class="stat-label">Dùng ngân sách</span><strong th:text="${budgetPercent + '%'}">0%</strong></div>
+                    <progress class="hp-progress mt-3" th:classappend="${overBudget ? ' is-danger' : ''}"
+                              th:value="${budgetProgress}" max="100" th:aria-label="${'Đã dùng ' + budgetPercent + '% ngân sách'}"></progress>
+                </article>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <article class="stat-card">
+                    <div class="stat-icon" aria-hidden="true">✓</div>
+                    <div class="d-flex justify-content-between gap-2"><span class="stat-label">Checklist</span><strong th:text="${checklistDone + '/' + checklist.size()}">0/0</strong></div>
+                    <progress class="hp-progress mt-3" th:value="${checklistPercent}" max="100"
+                              th:aria-label="${checklistPercent + '% checklist đã hoàn thành'}"></progress>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="trip-detail-tabs" aria-label="Nội dung chuyến đi" data-reveal>
+        <div class="tab-scroll mb-3">
+            <ul class="nav nav-pills" id="tripTabs" role="tablist">
+                <li class="nav-item" role="presentation"><button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Tổng quan</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link" id="itinerary-tab" data-bs-toggle="pill" data-bs-target="#itinerary" type="button" role="tab" aria-controls="itinerary" aria-selected="false">Lịch trình</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link" id="expenses-tab" data-bs-toggle="pill" data-bs-target="#expenses" type="button" role="tab" aria-controls="expenses" aria-selected="false">Chi phí</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link" id="checklist-tab" data-bs-toggle="pill" data-bs-target="#checklist" type="button" role="tab" aria-controls="checklist" aria-selected="false">Checklist</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link" id="bookings-tab" data-bs-toggle="pill" data-bs-target="#bookings" type="button" role="tab" aria-controls="bookings" aria-selected="false">Ghi chú đặt dịch vụ</button></li>
+            </ul>
+        </div>
+        <span id="activeTripTab" hidden th:attr="data-tab=${activeTripTab}"></span>
+
+        <div class="tab-content">
+            <section class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab" tabindex="0">
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <article class="card hp-card h-100"><div class="card-body p-4 p-lg-5">
+                            <p class="eyebrow">Thông tin hành trình</p><h2 class="h3 mb-4">Tổng quan chuyến đi</h2>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4 py-2">Điểm đến</dt><dd class="col-sm-8 py-2" th:text="${trip.destination.name + ', ' + trip.destination.country}">Điểm đến</dd>
+                                <dt class="col-sm-4 py-2">Thời gian</dt><dd class="col-sm-8 py-2" th:text="${#temporals.format(trip.startDate,'dd/MM/yyyy') + ' – ' + #temporals.format(trip.endDate,'dd/MM/yyyy')}">Thời gian</dd>
+                                <dt class="col-sm-4 py-2">Số người</dt><dd class="col-sm-8 py-2" th:text="${trip.peopleCount}">1</dd>
+                                <dt class="col-sm-4 py-2">Ghi chú</dt><dd class="col-sm-8 py-2 overview-note" th:text="${trip.notes ?: 'Chưa có ghi chú.'}">Chưa có ghi chú.</dd>
+                            </dl>
+                        </div></article>
+                    </div>
+                    <div class="col-lg-4">
+                        <article class="card hp-card h-100"><div class="card-body p-4 p-lg-5">
+                            <p class="eyebrow">Tiến độ</p><h2 class="h4 mb-4">Chuẩn bị chuyến đi</h2>
+                            <div class="d-flex justify-content-between gap-2"><span class="text-secondary">Checklist hoàn thành</span><strong th:text="${checklistDone + '/' + checklist.size()}">0/0</strong></div>
+                            <progress class="hp-progress mt-3" th:value="${checklistPercent}" max="100" th:aria-label="${checklistPercent + '% checklist đã hoàn thành'}"></progress>
+                            <p class="small text-secondary mt-3 mb-0" th:text="${checklistPercent + '% công việc đã hoàn tất'}">0% công việc đã hoàn tất</p>
+                        </div></article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab-pane fade" id="itinerary" role="tabpanel" aria-labelledby="itinerary-tab" tabindex="0">
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <article class="card hp-card"><div class="card-body p-4 p-lg-5">
+                            <div class="section-title"><div><p class="eyebrow">Theo từng ngày</p><h2 class="h3 mb-1">Lịch trình chuyến đi</h2><p class="small text-secondary mb-0">Các hoạt động được sắp xếp theo ngày và giờ bắt đầu.</p></div></div>
+                            <div class="empty-state" th:if="${#lists.isEmpty(itinerary)}"><h3 class="h5 mb-0">Chưa có hoạt động</h3><p class="mb-0">Thêm hoạt động đầu tiên để định hình chuyến đi.</p></div>
+                            <div class="timeline" th:unless="${#lists.isEmpty(itinerary)}">
+                                <article class="timeline-item" th:each="item : ${itinerary}">
+                                    <div class="timeline-card">
+                                        <div class="d-flex justify-content-between align-items-start gap-3">
+                                            <div class="min-w-0">
+                                                <span class="hp-badge hp-badge-planned mb-2" th:text="${'Ngày ' + item.dayNo}">Ngày 1</span>
+                                                <h3 class="h5 mb-1" th:text="${item.activity}">Hoạt động</h3>
+                                                <p class="small text-secondary mb-0"
+                                                   th:text="${(item.fromTime != null ? item.fromTime : 'Chưa đặt giờ') + (item.toTime != null ? ' – ' + item.toTime : '') + (item.location != null and !#strings.isEmpty(item.location) ? ' · ' + item.location : '')}">Thời gian</p>
+                                            </div>
+                                            <form th:if="${editable}" th:action="@{/trips/{id}/itinerary/{itemId}/delete(id=${trip.id},itemId=${item.id})}" method="post"
+                                                  data-confirm="Hoạt động sẽ được xóa khỏi lịch trình."
+                                                  data-confirm-title="Xóa hoạt động này?" data-confirm-accept="Xóa hoạt động">
+                                                <button class="btn btn-sm btn-link text-danger" type="submit">Xóa</button>
+                                            </form>
+                                        </div>
+                                        <p class="small mt-3 mb-0" th:if="${item.note != null and !#strings.isEmpty(item.note)}" th:text="${item.note}">Ghi chú</p>
+                                        <details class="editable-card mt-3" th:if="${editable}">
+                                            <summary>Chỉnh sửa hoạt động</summary>
+                                            <form class="row g-3 mt-1" th:action="@{/trips/{id}/itinerary/{itemId}/update(id=${trip.id},itemId=${item.id})}" method="post" novalidate>
+                                                <div class="col-12 col-sm-4">
+                                                    <label class="form-label required" th:for="${'editItineraryDay' + item.id}">Ngày thứ</label>
+                                                    <input class="form-control" th:id="${'editItineraryDay' + item.id}" type="number" name="dayNo" min="1" th:value="${item.dayNo}" required>
+                                                </div>
+                                                <div class="col-6 col-sm-4">
+                                                    <label class="form-label" th:for="${'editItineraryFrom' + item.id}">Bắt đầu</label>
+                                                    <input class="form-control" th:id="${'editItineraryFrom' + item.id}" type="time" name="fromTime" th:value="${item.fromTime}">
+                                                </div>
+                                                <div class="col-6 col-sm-4">
+                                                    <label class="form-label" th:for="${'editItineraryTo' + item.id}">Kết thúc</label>
+                                                    <input class="form-control" th:id="${'editItineraryTo' + item.id}" type="time" name="toTime" th:value="${item.toTime}">
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label required" th:for="${'editItineraryActivity' + item.id}">Hoạt động</label>
+                                                    <input class="form-control" th:id="${'editItineraryActivity' + item.id}" name="activity" maxlength="250" th:value="${item.activity}" required>
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label" th:for="${'editItineraryLocation' + item.id}">Địa điểm</label>
+                                                    <input class="form-control" th:id="${'editItineraryLocation' + item.id}" name="location" maxlength="250" th:value="${item.location}">
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label" th:for="${'editItineraryNote' + item.id}">Ghi chú</label>
+                                                    <textarea class="form-control" th:id="${'editItineraryNote' + item.id}" name="note" maxlength="1200" th:text="${item.note}"></textarea>
+                                                </div>
+                                                <div class="col-12"><button class="btn btn-sm btn-primary" type="submit">Lưu hoạt động</button></div>
+                                            </form>
+                                        </details>
+                                    </div>
+                                </article>
+                            </div>
+                        </div></article>
+                    </div>
+                    <aside class="col-lg-4" th:if="${editable}">
+                        <div class="card hp-card detail-form-card"><div class="card-body p-4">
+                            <p class="eyebrow" th:text="${editingItineraryId != null ? 'Đang chỉnh sửa' : 'Lịch trình mới'}">Lịch trình mới</p>
+                            <h2 class="h4" th:text="${editingItineraryId != null ? 'Cập nhật hoạt động' : 'Thêm hoạt động'}">Thêm hoạt động</h2>
+                            <form th:action="${editingItineraryId != null} ? @{/trips/{id}/itinerary/{itemId}/update(id=${trip.id},itemId=${editingItineraryId})} : @{/trips/{id}/itinerary(id=${trip.id})}"
+                                  th:object="${itineraryRequest}" method="post" novalidate data-child-form="itinerary" th:attr="data-editing-id=${editingItineraryId}">
+                                <div class="field-error mb-3" role="alert" th:if="${#fields.hasGlobalErrors()}"><div th:each="error : ${#fields.globalErrors()}" th:text="${error}"></div></div>
+                                <div class="mb-3"><label class="form-label required" for="newDayNo">Ngày thứ</label><input id="newDayNo" class="form-control" type="number" min="1" th:field="*{dayNo}" required><div class="field-error" th:errors="*{dayNo}"></div></div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6"><label class="form-label" for="newFromTime">Bắt đầu</label><input id="newFromTime" class="form-control" type="time" th:field="*{fromTime}"><div class="field-error" th:errors="*{fromTime}"></div></div>
+                                    <div class="col-6"><label class="form-label" for="newToTime">Kết thúc</label><input id="newToTime" class="form-control" type="time" th:field="*{toTime}"><div class="field-error" th:errors="*{toTime}"></div></div>
+                                    <div class="col-12"><div class="field-error" th:errors="*{timeRangeComplete}"></div><div class="field-error" th:errors="*{timeRangeOrdered}"></div></div>
+                                </div>
+                                <div class="mb-3"><label class="form-label required" for="newActivity">Hoạt động</label><input id="newActivity" class="form-control" th:field="*{activity}" maxlength="250" required><div class="field-error" th:errors="*{activity}"></div></div>
+                                <div class="mb-3"><label class="form-label" for="newLocation">Địa điểm</label><input id="newLocation" class="form-control" th:field="*{location}" maxlength="250"><div class="field-error" th:errors="*{location}"></div></div>
+                                <div class="mb-3"><label class="form-label" for="newItineraryNote">Ghi chú</label><textarea id="newItineraryNote" class="form-control" th:field="*{note}" maxlength="1200"></textarea><div class="field-error" th:errors="*{note}"></div></div>
+                                <button class="btn btn-primary w-100" type="submit" th:text="${editingItineraryId != null ? 'Lưu hoạt động' : 'Thêm lịch trình'}">Thêm lịch trình</button>
+                                <a class="btn btn-light w-100 mt-2" th:if="${editingItineraryId != null}" th:href="@{/trips/{id}(id=${trip.id},tab='itinerary')}">Hủy chỉnh sửa</a>
+                            </form>
+                        </div></div>
+                    </aside>
+                </div>
+            </section>
+
+            <section class="tab-pane fade" id="expenses" role="tabpanel" aria-labelledby="expenses-tab" tabindex="0">
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <article class="card hp-card"><div class="card-body p-4 p-lg-5">
+                            <div class="section-title">
+                                <div><p class="eyebrow">Ngân sách</p><h2 class="h3 mb-1">Các khoản chi</h2><p class="small text-secondary mb-0">Tổng chi toàn chuyến: <strong class="expense-total" th:text="${#numbers.formatDecimal(totalExpense,0,'COMMA',0,'POINT') + ' ₫'}">0 ₫</strong></p></div>
+                                <form method="get" th:action="@{/trips/{id}(id=${trip.id})}">
+                                    <input type="hidden" name="tab" value="expenses">
+                                    <label class="visually-hidden" for="expenseFilter">Lọc theo danh mục chi phí</label>
+                                    <select id="expenseFilter" class="form-select form-select-sm" name="expenseCategory" data-auto-submit>
+                                        <option value="">Mọi danh mục</option>
+                                        <option th:each="category : ${expenseCategories}" th:value="${category}"
+                                                th:text="${category.name() == 'TRANSPORT' ? 'Di chuyển' : category.name() == 'FOOD' ? 'Ăn uống' : category.name() == 'ACCOMMODATION' ? 'Lưu trú' : category.name() == 'TICKET' ? 'Vé tham quan' : category.name() == 'SHOPPING' ? 'Mua sắm' : 'Khác'}"
+                                                th:selected="${category == selectedExpenseCategory}">Danh mục</option>
+                                    </select>
+                                </form>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table responsive-table align-middle">
+                                    <caption class="visually-hidden">Danh sách khoản chi của chuyến đi</caption>
+                                    <thead><tr><th>Danh mục</th><th>Ngày</th><th>Ghi chú</th><th class="text-end">Số tiền</th><th class="text-end">Thao tác</th></tr></thead>
+                                    <tbody>
+                                    <tr th:each="expense : ${expenses}">
+                                        <td data-label="Danh mục"><span class="hp-badge hp-badge-planned" th:text="${expense.category.name() == 'TRANSPORT' ? 'Di chuyển' : expense.category.name() == 'FOOD' ? 'Ăn uống' : expense.category.name() == 'ACCOMMODATION' ? 'Lưu trú' : expense.category.name() == 'TICKET' ? 'Vé tham quan' : expense.category.name() == 'SHOPPING' ? 'Mua sắm' : 'Khác'}">Danh mục</span></td>
+                                        <td data-label="Ngày" th:text="${expense.spentDate != null ? #temporals.format(expense.spentDate,'dd/MM/yyyy') : 'Chưa đặt'}">Chưa đặt</td>
+                                        <td data-label="Ghi chú">
+                                            <span th:text="${expense.note != null and !#strings.isEmpty(expense.note) ? expense.note : 'Không có ghi chú'}">Ghi chú</span>
+                                            <details class="editable-card mt-2" th:if="${editable}">
+                                                <summary>Chỉnh sửa khoản chi</summary>
+                                                <form class="row g-3 mt-1" th:action="@{/trips/{id}/expenses/{expenseId}/update(id=${trip.id},expenseId=${expense.id})}" method="post" novalidate>
+                                                    <input type="hidden" name="expenseCategory" th:value="${selectedExpenseCategory}">
+                                                    <div class="col-md-6"><label class="form-label required" th:for="${'editExpenseCategory' + expense.id}">Danh mục</label><select class="form-select" th:id="${'editExpenseCategory' + expense.id}" name="category" required><option th:each="category : ${expenseCategories}" th:value="${category}" th:text="${category.name() == 'TRANSPORT' ? 'Di chuyển' : category.name() == 'FOOD' ? 'Ăn uống' : category.name() == 'ACCOMMODATION' ? 'Lưu trú' : category.name() == 'TICKET' ? 'Vé tham quan' : category.name() == 'SHOPPING' ? 'Mua sắm' : 'Khác'}" th:selected="${category == expense.category}">Danh mục</option></select></div>
+                                                    <div class="col-md-6"><label class="form-label required" th:for="${'editExpenseAmount' + expense.id}">Số tiền</label><input class="form-control" th:id="${'editExpenseAmount' + expense.id}" type="number" name="amount" min="0" max="9999999999999.99" step="0.01" th:value="${expense.amount}" required></div>
+                                                    <div class="col-md-6"><label class="form-label" th:for="${'editExpenseDate' + expense.id}">Ngày chi</label><input class="form-control" th:id="${'editExpenseDate' + expense.id}" type="date" name="spentDate" th:value="${expense.spentDate}"></div>
+                                                    <div class="col-md-6"><label class="form-label" th:for="${'editExpenseNote' + expense.id}">Ghi chú</label><input class="form-control" th:id="${'editExpenseNote' + expense.id}" name="note" maxlength="1200" th:value="${expense.note}"></div>
+                                                    <div class="col-12"><button class="btn btn-sm btn-primary" type="submit">Lưu khoản chi</button></div>
+                                                </form>
+                                            </details>
+                                        </td>
+                                        <td data-label="Số tiền" class="text-end fw-semibold" th:text="${#numbers.formatDecimal(expense.amount,0,'COMMA',0,'POINT') + ' ₫'}">0 ₫</td>
+                                        <td data-label="Thao tác" class="text-end">
+                                            <form th:if="${editable}" th:action="@{/trips/{id}/expenses/{expenseId}/delete(id=${trip.id},expenseId=${expense.id})}" method="post"
+                                                  data-confirm="Khoản chi sẽ bị xóa khỏi tổng ngân sách."
+                                                  data-confirm-title="Xóa khoản chi này?" data-confirm-accept="Xóa khoản chi">
+                                                <button class="btn btn-sm btn-link text-danger" type="submit">Xóa</button>
+                                            </form>
+                                            <span class="text-secondary small" th:unless="${editable}">Chỉ đọc</span>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(expenses)}"><td data-label="" colspan="5"><div class="empty-state"><h3 class="h5 mb-0">Không có khoản chi</h3><p class="mb-0">Bộ lọc hiện tại chưa có dữ liệu.</p></div></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div></article>
+                    </div>
+                    <aside class="col-lg-4" th:if="${editable}">
+                        <div class="card hp-card detail-form-card"><div class="card-body p-4">
+                            <p class="eyebrow" th:text="${editingExpenseId != null ? 'Đang chỉnh sửa' : 'Ngân sách'}">Ngân sách</p>
+                            <h2 class="h4" th:text="${editingExpenseId != null ? 'Cập nhật khoản chi' : 'Thêm khoản chi'}">Thêm khoản chi</h2>
+                            <form th:action="${editingExpenseId != null} ? @{/trips/{id}/expenses/{expenseId}/update(id=${trip.id},expenseId=${editingExpenseId})} : @{/trips/{id}/expenses(id=${trip.id})}"
+                                  th:object="${expenseRequest}" method="post" novalidate data-child-form="expense" th:attr="data-editing-id=${editingExpenseId}">
+                                <div class="field-error mb-3" role="alert" th:if="${#fields.hasGlobalErrors()}"><div th:each="error : ${#fields.globalErrors()}" th:text="${error}"></div></div>
+                                <input type="hidden" name="expenseCategory" th:value="${selectedExpenseCategory}">
+                                <div class="mb-3"><label class="form-label required" for="newExpenseCategory">Danh mục</label><select id="newExpenseCategory" class="form-select" th:field="*{category}" required><option value="">Chọn danh mục</option><option th:each="category : ${expenseCategories}" th:value="${category}" th:text="${category.name() == 'TRANSPORT' ? 'Di chuyển' : category.name() == 'FOOD' ? 'Ăn uống' : category.name() == 'ACCOMMODATION' ? 'Lưu trú' : category.name() == 'TICKET' ? 'Vé tham quan' : category.name() == 'SHOPPING' ? 'Mua sắm' : 'Khác'}">Danh mục</option></select><div class="field-error" th:errors="*{category}"></div></div>
+                                <div class="mb-3"><label class="form-label required" for="newExpenseAmount">Số tiền</label><input id="newExpenseAmount" class="form-control" type="number" min="0" max="9999999999999.99" step="0.01" th:field="*{amount}" required><div class="field-error" th:errors="*{amount}"></div></div>
+                                <div class="mb-3"><label class="form-label" for="newSpentDate">Ngày chi</label><input id="newSpentDate" class="form-control" type="date" th:field="*{spentDate}"><div class="field-error" th:errors="*{spentDate}"></div></div>
+                                <div class="mb-3"><label class="form-label" for="newExpenseNote">Ghi chú</label><textarea id="newExpenseNote" class="form-control" th:field="*{note}" maxlength="1200"></textarea><div class="field-error" th:errors="*{note}"></div></div>
+                                <button class="btn btn-primary w-100" type="submit" th:text="${editingExpenseId != null ? 'Lưu khoản chi' : 'Thêm khoản chi'}">Thêm khoản chi</button>
+                                <a class="btn btn-light w-100 mt-2" th:if="${editingExpenseId != null}" th:href="@{/trips/{id}(id=${trip.id},tab='expenses',expenseCategory=${selectedExpenseCategory})}">Hủy chỉnh sửa</a>
+                            </form>
+                        </div></div>
+                    </aside>
+                </div>
+            </section>
+
+            <section class="tab-pane fade" id="checklist" role="tabpanel" aria-labelledby="checklist-tab" tabindex="0">
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <article class="card hp-card"><div class="card-body p-4 p-lg-5">
+                            <div class="section-title"><div><p class="eyebrow">Sẵn sàng lên đường</p><h2 class="h3 mb-1">Checklist chuẩn bị</h2><p class="small text-secondary mb-0" th:text="${checklistDone + '/' + checklist.size() + ' mục đã hoàn thành'}">0/0 mục đã hoàn thành</p></div></div>
+                            <article class="check-item" th:each="item : ${checklist}" th:classappend="${item.done ? ' is-done' : ''}">
+                                <form th:if="${editable}" th:action="@{/trips/{id}/checklist/{itemId}/toggle(id=${trip.id},itemId=${item.id})}" method="post">
+                                    <input type="hidden" name="done" th:value="${!item.done}">
+                                    <button class="check-state" type="submit" th:text="${item.done ? '✓' : '○'}"
+                                            th:aria-label="${item.done ? 'Đánh dấu chưa hoàn thành: ' + item.title : 'Đánh dấu hoàn thành: ' + item.title}">○</button>
+                                </form>
+                                <span class="check-state" th:unless="${editable}" role="img"
+                                      th:aria-label="${item.done ? 'Đã hoàn thành' : 'Chưa hoàn thành'}"
+                                      th:text="${item.done ? '✓' : '○'}">○</span>
+                                <div class="flex-grow-1 min-w-0">
+                                    <h3 class="check-title h6 mb-1" th:text="${item.title}">Việc cần làm</h3>
+                                    <p class="small text-secondary mb-0" th:text="${(item.category != null and !#strings.isEmpty(item.category) ? item.category : 'Khác') + (item.dueDate != null ? ' · Hạn ' + #temporals.format(item.dueDate,'dd/MM/yyyy') : '')}">Danh mục</p>
+                                    <details class="editable-card mt-2" th:if="${editable}">
+                                        <summary>Chỉnh sửa việc cần làm</summary>
+                                        <form class="row g-3 mt-1" th:action="@{/trips/{id}/checklist/{itemId}/update(id=${trip.id},itemId=${item.id})}" method="post" novalidate>
+                                            <div class="col-12"><label class="form-label required" th:for="${'editChecklistTitle' + item.id}">Tên việc</label><input class="form-control" th:id="${'editChecklistTitle' + item.id}" name="title" maxlength="250" th:value="${item.title}" required></div>
+                                            <div class="col-md-6"><label class="form-label" th:for="${'editChecklistCategory' + item.id}">Danh mục</label><input class="form-control" th:id="${'editChecklistCategory' + item.id}" name="category" maxlength="100" th:value="${item.category}"></div>
+                                            <div class="col-md-6"><label class="form-label" th:for="${'editChecklistDue' + item.id}">Hạn hoàn thành</label><input class="form-control" th:id="${'editChecklistDue' + item.id}" type="date" name="dueDate" th:value="${item.dueDate}"></div>
+                                            <div class="col-12"><button class="btn btn-sm btn-primary" type="submit">Lưu checklist</button></div>
+                                        </form>
+                                    </details>
+                                </div>
+                                <form th:if="${editable}" th:action="@{/trips/{id}/checklist/{itemId}/delete(id=${trip.id},itemId=${item.id})}" method="post"
+                                      data-confirm="Việc cần làm sẽ bị xóa khỏi checklist."
+                                      data-confirm-title="Xóa mục checklist?" data-confirm-accept="Xóa mục">
+                                    <button class="btn btn-sm btn-link text-danger" type="submit">Xóa</button>
+                                </form>
+                            </article>
+                            <div class="empty-state" th:if="${#lists.isEmpty(checklist)}"><h3 class="h5 mb-0">Checklist đang trống</h3><p class="mb-0">Thêm việc đầu tiên để chuẩn bị chu đáo hơn.</p></div>
+                        </div></article>
+                    </div>
+                    <aside class="col-lg-4" th:if="${editable}">
+                        <div class="card hp-card detail-form-card"><div class="card-body p-4">
+                            <p class="eyebrow" th:text="${editingChecklistId != null ? 'Đang chỉnh sửa' : 'Chuẩn bị'}">Chuẩn bị</p>
+                            <h2 class="h4" th:text="${editingChecklistId != null ? 'Cập nhật việc cần làm' : 'Thêm việc cần làm'}">Thêm việc cần làm</h2>
+                            <form th:action="${editingChecklistId != null} ? @{/trips/{id}/checklist/{itemId}/update(id=${trip.id},itemId=${editingChecklistId})} : @{/trips/{id}/checklist(id=${trip.id})}"
+                                  th:object="${checklistRequest}" method="post" novalidate data-child-form="checklist" th:attr="data-editing-id=${editingChecklistId}">
+                                <div class="field-error mb-3" role="alert" th:if="${#fields.hasGlobalErrors()}"><div th:each="error : ${#fields.globalErrors()}" th:text="${error}"></div></div>
+                                <div class="mb-3"><label class="form-label required" for="newChecklistTitle">Tên việc</label><input id="newChecklistTitle" class="form-control" th:field="*{title}" maxlength="250" required><div class="field-error" th:errors="*{title}"></div></div>
+                                <div class="mb-3"><label class="form-label" for="newChecklistCategory">Danh mục</label><input id="newChecklistCategory" class="form-control" th:field="*{category}" maxlength="100"><div class="field-error" th:errors="*{category}"></div></div>
+                                <div class="mb-3"><label class="form-label" for="newChecklistDueDate">Hạn hoàn thành</label><input id="newChecklistDueDate" class="form-control" type="date" th:field="*{dueDate}"><div class="field-error" th:errors="*{dueDate}"></div></div>
+                                <button class="btn btn-primary w-100" type="submit" th:text="${editingChecklistId != null ? 'Lưu checklist' : 'Thêm checklist'}">Thêm checklist</button>
+                                <a class="btn btn-light w-100 mt-2" th:if="${editingChecklistId != null}" th:href="@{/trips/{id}(id=${trip.id},tab='checklist')}">Hủy chỉnh sửa</a>
+                            </form>
+                        </div></div>
+                    </aside>
+                </div>
+            </section>
+
+            <section class="tab-pane fade" id="bookings" role="tabpanel" aria-labelledby="bookings-tab" tabindex="0">
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <article class="card hp-card"><div class="card-body p-4 p-lg-5">
+                            <div class="section-title"><div><p class="eyebrow">Thông tin tham chiếu</p><h2 class="h3 mb-1">Ghi chú đặt dịch vụ</h2><p class="small text-secondary mb-0">Lưu thông tin để tra cứu; Holiday Planner không thực hiện đặt vé.</p></div></div>
+                            <div class="d-grid gap-3">
+                                <article class="booking-card" th:each="booking : ${bookings}">
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                            <span class="hp-badge hp-badge-planned"
+                                                  th:text="${booking.type.name() == 'FLIGHT' ? 'Chuyến bay' : booking.type.name() == 'HOTEL' ? 'Khách sạn' : booking.type.name() == 'TRAIN' ? 'Tàu hỏa' : booking.type.name() == 'BUS' ? 'Xe khách' : booking.type.name() == 'TOUR' ? 'Tour' : booking.type.name() == 'RESTAURANT' ? 'Nhà hàng' : 'Khác'}">Loại dịch vụ</span>
+                                            <h3 class="h5 mb-0" th:text="${booking.provider}">Nhà cung cấp</h3>
+                                        </div>
+                                        <div class="d-flex flex-wrap align-items-center gap-2 small text-secondary">
+                                            <span th:if="${booking.bookingCode != null and !#strings.isEmpty(booking.bookingCode)}">Mã:</span>
+                                            <strong class="booking-code" th:if="${booking.bookingCode != null and !#strings.isEmpty(booking.bookingCode)}"
+                                                    th:id="${'bookingCode' + booking.id}" th:text="${booking.bookingCode}">CODE</strong>
+                                            <button class="btn btn-sm btn-light" type="button"
+                                                    th:if="${booking.bookingCode != null and !#strings.isEmpty(booking.bookingCode)}"
+                                                    th:attr="data-copy-target=${'bookingCode' + booking.id}"
+                                                    th:aria-label="${'Sao chép mã đặt chỗ ' + booking.bookingCode}">Sao chép mã</button>
+                                            <span th:unless="${booking.bookingCode != null and !#strings.isEmpty(booking.bookingCode)}">Chưa có mã đặt chỗ</span>
+                                            <strong th:text="${#numbers.formatDecimal(booking.price,0,'COMMA',0,'POINT') + ' ₫'}">0 ₫</strong>
+                                        </div>
+                                        <p class="small mt-3 mb-0" th:if="${booking.note != null and !#strings.isEmpty(booking.note)}" th:text="${booking.note}">Ghi chú</p>
+                                        <details class="editable-card mt-3" th:if="${editable}">
+                                            <summary>Chỉnh sửa ghi chú đặt dịch vụ</summary>
+                                            <form class="row g-3 mt-1" th:action="@{/trips/{id}/bookings/{bookingId}/update(id=${trip.id},bookingId=${booking.id})}" method="post" novalidate>
+                                                <div class="col-md-6"><label class="form-label required" th:for="${'editBookingType' + booking.id}">Loại dịch vụ</label><select class="form-select" th:id="${'editBookingType' + booking.id}" name="type" required><option th:each="type : ${bookingTypes}" th:value="${type}" th:text="${type.name() == 'FLIGHT' ? 'Chuyến bay' : type.name() == 'HOTEL' ? 'Khách sạn' : type.name() == 'TRAIN' ? 'Tàu hỏa' : type.name() == 'BUS' ? 'Xe khách' : type.name() == 'TOUR' ? 'Tour' : type.name() == 'RESTAURANT' ? 'Nhà hàng' : 'Khác'}" th:selected="${type == booking.type}">Loại</option></select></div>
+                                                <div class="col-md-6"><label class="form-label required" th:for="${'editBookingProvider' + booking.id}">Nhà cung cấp</label><input class="form-control" th:id="${'editBookingProvider' + booking.id}" name="provider" maxlength="180" th:value="${booking.provider}" required></div>
+                                                <div class="col-md-6"><label class="form-label" th:for="${'editBookingCode' + booking.id}">Mã đặt chỗ</label><input class="form-control" th:id="${'editBookingCode' + booking.id}" name="bookingCode" maxlength="120" th:value="${booking.bookingCode}"></div>
+                                                <div class="col-md-6"><label class="form-label required" th:for="${'editBookingPrice' + booking.id}">Chi phí</label><input class="form-control" th:id="${'editBookingPrice' + booking.id}" type="number" name="price" min="0" max="9999999999999.99" step="0.01" th:value="${booking.price}" required></div>
+                                                <div class="col-12"><label class="form-label" th:for="${'editBookingNote' + booking.id}">Ghi chú</label><textarea class="form-control" th:id="${'editBookingNote' + booking.id}" name="note" maxlength="1200" th:text="${booking.note}"></textarea></div>
+                                                <div class="col-12"><button class="btn btn-sm btn-primary" type="submit">Lưu ghi chú</button></div>
+                                            </form>
+                                        </details>
+                                    </div>
+                                    <form th:if="${editable}" th:action="@{/trips/{id}/bookings/{bookingId}/delete(id=${trip.id},bookingId=${booking.id})}" method="post"
+                                          data-confirm="Ghi chú đặt dịch vụ sẽ bị xóa khỏi chuyến đi."
+                                          data-confirm-title="Xóa ghi chú này?" data-confirm-accept="Xóa ghi chú">
+                                        <button class="btn btn-sm btn-link text-danger" type="submit">Xóa</button>
+                                    </form>
+                                </article>
+                            </div>
+                            <div class="empty-state" th:if="${#lists.isEmpty(bookings)}"><h3 class="h5 mb-0">Chưa có ghi chú đặt dịch vụ</h3><p class="mb-0">Lưu mã và nhà cung cấp để tra cứu thuận tiện.</p></div>
+                        </div></article>
+                    </div>
+                    <aside class="col-lg-4" th:if="${editable}">
+                        <div class="card hp-card detail-form-card"><div class="card-body p-4">
+                            <p class="eyebrow" th:text="${editingBookingId != null ? 'Đang chỉnh sửa' : 'Thông tin tham chiếu'}">Thông tin tham chiếu</p>
+                            <h2 class="h4" th:text="${editingBookingId != null ? 'Cập nhật ghi chú' : 'Thêm ghi chú đặt dịch vụ'}">Thêm ghi chú đặt dịch vụ</h2>
+                            <form th:action="${editingBookingId != null} ? @{/trips/{id}/bookings/{bookingId}/update(id=${trip.id},bookingId=${editingBookingId})} : @{/trips/{id}/bookings(id=${trip.id})}"
+                                  th:object="${bookingRequest}" method="post" novalidate data-child-form="booking" th:attr="data-editing-id=${editingBookingId}">
+                                <div class="field-error mb-3" role="alert" th:if="${#fields.hasGlobalErrors()}"><div th:each="error : ${#fields.globalErrors()}" th:text="${error}"></div></div>
+                                <div class="mb-3"><label class="form-label required" for="newBookingType">Loại dịch vụ</label><select id="newBookingType" class="form-select" th:field="*{type}" required><option value="">Chọn loại</option><option th:each="type : ${bookingTypes}" th:value="${type}" th:text="${type.name() == 'FLIGHT' ? 'Chuyến bay' : type.name() == 'HOTEL' ? 'Khách sạn' : type.name() == 'TRAIN' ? 'Tàu hỏa' : type.name() == 'BUS' ? 'Xe khách' : type.name() == 'TOUR' ? 'Tour' : type.name() == 'RESTAURANT' ? 'Nhà hàng' : 'Khác'}">Loại</option></select><div class="field-error" th:errors="*{type}"></div></div>
+                                <div class="mb-3"><label class="form-label required" for="newBookingProvider">Nhà cung cấp</label><input id="newBookingProvider" class="form-control" th:field="*{provider}" maxlength="180" required><div class="field-error" th:errors="*{provider}"></div></div>
+                                <div class="mb-3"><label class="form-label" for="newBookingCode">Mã đặt chỗ</label><input id="newBookingCode" class="form-control" th:field="*{bookingCode}" maxlength="120"><div class="field-error" th:errors="*{bookingCode}"></div></div>
+                                <div class="mb-3"><label class="form-label required" for="newBookingPrice">Chi phí</label><input id="newBookingPrice" class="form-control" type="number" min="0" max="9999999999999.99" step="0.01" th:field="*{price}" required><div class="field-error" th:errors="*{price}"></div></div>
+                                <div class="mb-3"><label class="form-label" for="newBookingNote">Ghi chú</label><textarea id="newBookingNote" class="form-control" th:field="*{note}" maxlength="1200"></textarea><div class="field-error" th:errors="*{note}"></div></div>
+                                <button class="btn btn-primary w-100" type="submit" th:text="${editingBookingId != null ? 'Lưu ghi chú' : 'Thêm ghi chú'}">Thêm ghi chú</button>
+                                <a class="btn btn-light w-100 mt-2" th:if="${editingBookingId != null}" th:href="@{/trips/{id}(id=${trip.id},tab='bookings')}">Hủy chỉnh sửa</a>
+                            </form>
+                        </div></div>
+                    </aside>
+                </div>
+            </section>
+        </div>
+    </section>
+</main>
+<th:block th:replace="~{fragments :: scripts}"></th:block>
+</body>
+</html>

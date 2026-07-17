@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">Hoàng hôn Phú Quốc</title>
+  <desc id="desc">Bãi biển nhiệt đới, hàng dừa và hoàng hôn trên đảo Phú Quốc</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#34483f"/>
+      <stop offset=".46" stop-color="#a9795b"/>
+      <stop offset="1" stop-color="#d0ad6a"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#6f9993"/>
+      <stop offset="1" stop-color="#315d62"/>
+    </linearGradient>
+    <linearGradient id="sand" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ead9b8"/>
+      <stop offset="1" stop-color="#b48b55"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#sky)"/>
+  <circle cx="850" cy="250" r="92" fill="#fff7c2" opacity=".86"/>
+  <path d="M0 330c150-35 245 30 390 3 160-30 252 23 402 0 150-23 262 27 408-8v250H0Z" fill="url(#sea)"/>
+  <path d="M0 475c170-38 315-1 465 45 175 53 364 50 735-7v167H0Z" fill="url(#sand)"/>
+  <path d="M0 385c160-29 270 28 430 2 157-25 280 30 420 1 142-30 245 22 350-3" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="12"/>
+  <g fill="#15344a">
+    <path d="M170 545c21-123 42-221 91-300l15 8c-42 84-56 185-67 305Z"/>
+    <path d="M252 260c-53-47-101-52-145-31 47 5 83 27 116 60Z"/>
+    <path d="M261 254c-12-66-49-99-93-112 34 31 51 69 55 113Z"/>
+    <path d="M268 253c28-63 70-88 120-87-44 19-74 51-92 96Z"/>
+    <path d="M273 262c62-35 113-27 151 5-47-10-90-2-132 24Z"/>
+  </g>
+  <path d="M720 500c52-30 98-34 142-13-51 6-92 23-128 51Z" fill="#0f3d55" opacity=".6"/>
+  <path d="M735 545c70-33 139-34 207-2" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width="8" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Tổng quan hành trình, ngân sách và checklist trên Holiday Planner.">
+    <title>Tổng quan - Holiday Planner</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments :: nav}"></div>
+<div th:replace="~{fragments :: alerts}"></div>
+<main class="container hp-main page-enter">
+    <section class="cinematic-hero dashboard-hero" data-parallax aria-labelledby="dashboardTitle">
+        <img class="hero-image" th:src="@{/images/destinations/ha-noi.svg}"
+             data-fallback="/images/destination-fallback.svg" alt="Phong cảnh Việt Nam mở đầu hành trình">
+        <div class="cinematic-hero-content" data-reveal>
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <span class="avatar avatar-nav">
+                    <img th:if="${currentUser.avatarUrl != null and !#strings.isEmpty(currentUser.avatarUrl)}"
+                         th:src="${currentUser.avatarUrl}" data-fallback="/images/avatar-default.svg"
+                         th:alt="${'Ảnh đại diện của ' + currentUser.fullName}">
+                    <span th:unless="${currentUser.avatarUrl != null and !#strings.isEmpty(currentUser.avatarUrl)}"
+                          th:text="${#strings.substring(currentUser.fullName,0,1)}" aria-hidden="true">U</span>
+                </span>
+                <span class="eyebrow mb-0" th:text="${stats.adminView ? 'Trung tâm vận hành' : 'Không gian hành trình'}">Không gian hành trình</span>
+            </div>
+            <h1 id="dashboardTitle" class="hp-display mb-3" th:text="${'Xin chào, ' + currentUser.fullName}">Xin chào</h1>
+            <p class="lead mb-0"
+               th:text="${stats.adminView ? 'Một góc nhìn rõ ràng để theo dõi và hỗ trợ toàn bộ Holiday Planner.' : 'Biến cảm hứng hôm nay thành một hành trình được chuẩn bị thật đẹp.'}"></p>
+            <div class="dashboard-hero-actions">
+                <a class="btn btn-light btn-lg" th:if="${!stats.adminView}" th:href="@{/trips/new}">Tạo kế hoạch mới</a>
+                <a class="btn btn-on-image btn-lg" th:href="@{/trips}">Xem các hành trình</a>
+                <a class="btn btn-light btn-lg" th:if="${stats.adminView}" th:href="@{/admin/destinations}">Quản lý điểm đến</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="dashboard-stat-grid" aria-label="Số liệu tổng quan">
+        <div class="row g-3" data-stagger>
+            <div class="col-md-4">
+                <article class="stat-card">
+                    <div class="stat-icon" aria-hidden="true">01</div>
+                    <div class="stat-label" th:text="${stats.adminView ? 'Chuyến đi toàn hệ thống' : 'Tổng chuyến đi'}">Tổng chuyến đi</div>
+                    <div class="stat-value" data-counter th:attr="data-counter=${stats.totalTrips}" th:text="${stats.totalTrips}">0</div>
+                </article>
+            </div>
+            <div class="col-md-4">
+                <article class="stat-card">
+                    <div class="stat-icon" aria-hidden="true">₫</div>
+                    <div class="stat-label">Tổng chi phí</div>
+                    <div class="stat-value fs-3" th:text="${#numbers.formatDecimal(stats.totalExpense,0,'COMMA',0,'POINT') + ' ₫'}">0 ₫</div>
+                </article>
+            </div>
+            <div class="col-md-4">
+                <article class="stat-card">
+                    <div class="stat-icon" aria-hidden="true">✓</div>
+                    <div class="stat-label">Việc chưa hoàn thành</div>
+                    <div class="stat-value" data-counter th:attr="data-counter=${stats.openChecklist}" th:text="${stats.openChecklist}">0</div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="row g-4 mt-3" aria-label="Phân tích hành trình" data-stagger>
+        <div class="col-lg-6">
+            <article class="card hp-card chart-panel">
+                <div class="card-body p-4 p-xl-5">
+                    <div class="section-title">
+                        <div><p class="eyebrow">Ngân sách</p><h2 class="h4 mb-1">Chi phí theo danh mục</h2><p class="small text-secondary mb-0">Đơn vị: đồng Việt Nam</p></div>
+                    </div>
+                    <div class="empty-state" th:if="${stats.expenseByCategory.isEmpty()}">
+                        <h3 class="h5 mb-0">Chưa có dữ liệu chi phí</h3><p class="mb-0">Các khoản chi sẽ xuất hiện tại đây.</p>
+                    </div>
+                    <div class="chart-row" th:each="entry : ${stats.expenseByCategory}">
+                        <span th:text="${entry.key.name() == 'TRANSPORT' ? 'Di chuyển' : entry.key.name() == 'FOOD' ? 'Ăn uống' : entry.key.name() == 'ACCOMMODATION' ? 'Lưu trú' : entry.key.name() == 'TICKET' ? 'Vé tham quan' : entry.key.name() == 'SHOPPING' ? 'Mua sắm' : 'Khác'}">Danh mục</span>
+                        <progress class="hp-progress" th:value="${entry.value}"
+                                  th:max="${stats.maxCategoryExpense.signum() > 0 ? stats.maxCategoryExpense : 1}"
+                                  th:aria-label="${'Chi phí theo danh mục ' + entry.key}"></progress>
+                        <strong th:text="${#numbers.formatDecimal(entry.value,0,'COMMA',0,'POINT')}">0</strong>
+                    </div>
+                </div>
+            </article>
+        </div>
+        <div class="col-lg-6">
+            <article class="card hp-card chart-panel">
+                <div class="card-body p-4 p-xl-5">
+                    <div class="section-title">
+                        <div><p class="eyebrow">Tiến độ</p><h2 class="h4 mb-1">Trạng thái chuyến đi</h2><p class="small text-secondary mb-0">Phân bổ kế hoạch hiện tại</p></div>
+                    </div>
+                    <div class="empty-state" th:if="${stats.tripsByStatus.isEmpty()}">
+                        <h3 class="h5 mb-0">Chưa có hành trình</h3><p class="mb-0">Kế hoạch đầu tiên sẽ mở ra biểu đồ này.</p>
+                    </div>
+                    <div class="chart-row" th:each="entry : ${stats.tripsByStatus}">
+                        <span th:text="${entry.key.name() == 'DRAFT' ? 'Nháp' : entry.key.name() == 'PLANNED' ? 'Đã lập kế hoạch' : entry.key.name() == 'ONGOING' ? 'Đang đi' : entry.key.name() == 'COMPLETED' ? 'Hoàn thành' : 'Đã hủy'}">Trạng thái</span>
+                        <progress class="hp-progress" th:value="${entry.value}"
+                                  th:max="${stats.maxStatusCount > 0 ? stats.maxStatusCount : 1}"
+                                  th:aria-label="${'Số chuyến ở trạng thái ' + entry.key}"></progress>
+                        <strong th:text="${entry.value}">0</strong>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="card hp-card mt-4" data-reveal>
+        <div class="card-body p-4 p-xl-5">
+            <div class="section-title">
+                <div><p class="eyebrow">Tiếp theo</p><h2 class="h3 mb-1">Chuyến đi sắp tới</h2><p class="text-secondary mb-0">Những hành trình gần nhất đang chờ được tiếp tục.</p></div>
+                <a th:href="@{/trips}" class="btn btn-outline-primary">Xem tất cả</a>
+            </div>
+            <div class="empty-state" th:if="${#lists.isEmpty(stats.upcomingTrips)}">
+                <h3 class="h5 mb-0">Chưa có chuyến đi sắp tới</h3>
+                <p class="mb-2" th:text="${stats.adminView ? 'Không có hành trình đủ điều kiện trong thời gian tới.' : 'Một hành trình mới có thể bắt đầu ngay hôm nay.'}"></p>
+                <a class="btn btn-primary" th:if="${!stats.adminView}" th:href="@{/trips/new}">Tạo kế hoạch đầu tiên</a>
+            </div>
+            <div class="upcoming-grid" th:unless="${#lists.isEmpty(stats.upcomingTrips)}" data-stagger>
+                <a class="trip-mini-card" th:each="trip : ${stats.upcomingTrips}" th:href="@{/trips/{id}(id=${trip.id})}">
+                    <img th:src="${trip.destination.imageUrl ?: '/images/destination-fallback.svg'}"
+                         data-fallback="/images/destination-fallback.svg" loading="lazy"
+                         th:alt="${'Phong cảnh ' + trip.destination.name}">
+                    <div class="trip-mini-content">
+                        <span class="hp-badge mb-2"
+                              th:classappend="${trip.status.name() == 'DRAFT' ? ' hp-badge-draft' : trip.status.name() == 'PLANNED' ? ' hp-badge-planned' : trip.status.name() == 'ONGOING' ? ' hp-badge-ongoing' : trip.status.name() == 'COMPLETED' ? ' hp-badge-completed' : ' hp-badge-cancelled'}"
+                              th:text="${trip.status.name() == 'DRAFT' ? 'Nháp' : trip.status.name() == 'PLANNED' ? 'Đã lập kế hoạch' : trip.status.name() == 'ONGOING' ? 'Đang đi' : trip.status.name() == 'COMPLETED' ? 'Hoàn thành' : 'Đã hủy'}">Nháp</span>
+                        <h3 class="h5 mb-1" th:text="${trip.title}">Tên chuyến đi</h3>
+                        <p class="text-secondary small mb-0" th:text="${trip.destination.name + ' · ' + #temporals.format(trip.startDate,'dd/MM/yyyy')}"></p>
+                        <small class="d-block mt-2" th:if="${stats.adminView}" th:text="${'Chủ sở hữu: ' + trip.owner.fullName}"></small>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+</main>
+<th:block th:replace="~{fragments :: scripts}"></th:block>
+</body>
+</html>

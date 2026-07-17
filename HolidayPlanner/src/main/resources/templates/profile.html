@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Quản lý hồ sơ, ảnh đại diện và mật khẩu Holiday Planner.">
+    <title>Hồ sơ - Holiday Planner</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments :: nav}"></div>
+<div th:replace="~{fragments :: alerts}"></div>
+<main class="container hp-main page-enter">
+    <header class="hero-panel profile-hero mb-4" data-reveal>
+        <div class="d-flex align-items-center gap-4 flex-wrap">
+            <div class="profile-avatar-wrap">
+                <span class="avatar avatar-lg">
+                    <img id="avatarPreview" th:if="${currentUser.avatarUrl != null and !#strings.isEmpty(currentUser.avatarUrl)}"
+                         th:src="${currentUser.avatarUrl}" data-fallback="/images/avatar-default.svg"
+                         th:alt="${'Ảnh đại diện của ' + currentUser.fullName}">
+                    <img id="avatarPreview" th:unless="${currentUser.avatarUrl != null and !#strings.isEmpty(currentUser.avatarUrl)}"
+                         th:src="@{/images/avatar-default.svg}" alt="Ảnh đại diện mặc định">
+                </span>
+            </div>
+            <div>
+                <p class="eyebrow">Không gian cá nhân</p>
+                <h1 class="display-5 mb-2" th:text="${currentUser.fullName}">Hồ sơ cá nhân</h1>
+                <p class="text-secondary mb-3" th:text="${currentUser.email}">email@example.com</p>
+                <div class="profile-facts">
+                    <span class="hp-badge" th:classappend="${currentUser.role.name() == 'ADMIN' ? ' hp-badge-admin' : ' hp-badge-user'}"
+                          th:text="${currentUser.role.name() == 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}">Người dùng</span>
+                    <span class="hp-badge" th:classappend="${currentUser.status.name() == 'ACTIVE' ? ' hp-badge-active' : ' hp-badge-locked'}"
+                          th:text="${currentUser.status.name() == 'ACTIVE' ? 'Đang hoạt động' : 'Đã khóa'}">Đang hoạt động</span>
+                </div>
+            </div>
+        </div>
+        <a class="btn btn-outline-primary" th:href="@{/dashboard}">Về tổng quan</a>
+    </header>
+
+    <div class="row g-4 mb-4" data-stagger>
+        <div class="col-lg-5">
+            <section class="card hp-card h-100">
+                <div class="card-body p-4 p-md-5">
+                    <p class="eyebrow">Ảnh đại diện</p>
+                    <h2 class="h3">Dấu ấn riêng của bạn</h2>
+                    <p class="text-secondary">Dùng ảnh vuông JPG, PNG hoặc WebP, dung lượng tối đa 5 MB.</p>
+                    <div class="context-note context-note-warning mb-3" th:if="${!imageUploadAvailable}" role="status">
+                        <span aria-hidden="true">i</span><div><strong>Upload ảnh chưa được cấu hình</strong><p>Ảnh mặc định vẫn hoạt động và các chức năng khác không bị ảnh hưởng.</p></div>
+                    </div>
+                    <form class="media-uploader" th:action="@{/profile/avatar}" method="post" enctype="multipart/form-data"
+                          data-drop-zone data-loading-overlay novalidate>
+                        <label class="form-label required" for="avatarFile">Chọn hoặc thả ảnh vào đây</label>
+                        <input id="avatarFile" class="form-control" type="file" name="image"
+                               accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                               data-image-preview="avatarPreview" th:disabled="${!imageUploadAvailable}" required
+                               aria-describedby="avatarHelp">
+                        <div id="avatarHelp" class="field-hint mt-2">Ảnh được kiểm tra định dạng và dung lượng trước khi tải lên.</div>
+                        <button class="btn btn-primary w-100 mt-3" type="submit" th:disabled="${!imageUploadAvailable}">Tải ảnh đại diện lên</button>
+                    </form>
+                    <form class="mt-3" th:if="${currentUser.avatarUrl != null and !#strings.isEmpty(currentUser.avatarUrl)}"
+                          th:action="@{/profile/avatar/delete}" method="post"
+                          data-confirm="Ảnh đại diện hiện tại sẽ được thay bằng ảnh mặc định."
+                          data-confirm-title="Xóa ảnh đại diện?" data-confirm-accept="Dùng ảnh mặc định" data-confirm-tone="warning">
+                        <button class="btn btn-outline-danger w-100" type="submit">Trở về ảnh mặc định</button>
+                    </form>
+                </div>
+            </section>
+        </div>
+        <div class="col-lg-7">
+            <section class="card hp-card h-100">
+                <div class="card-body p-4 p-md-5">
+                    <p class="eyebrow">Thông tin tài khoản</p>
+                    <h2 class="h3">Thông tin hiển thị</h2>
+                    <p class="text-secondary">Email và vai trò được bảo vệ, không thể thay đổi tại đây.</p>
+                    <dl class="row mb-4">
+                        <dt class="col-sm-4 py-2">Email</dt><dd class="col-sm-8 py-2" th:text="${currentUser.email}">email@example.com</dd>
+                        <dt class="col-sm-4 py-2">Vai trò</dt><dd class="col-sm-8 py-2" th:text="${currentUser.role.name() == 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}">Người dùng</dd>
+                        <dt class="col-sm-4 py-2">Trạng thái</dt><dd class="col-sm-8 py-2" th:text="${currentUser.status.name() == 'ACTIVE' ? 'Đang hoạt động' : 'Đã khóa'}">Đang hoạt động</dd>
+                    </dl>
+                    <form th:action="@{/profile}" th:object="${profileRequest}" method="post"
+                          data-dirty-guard data-loading-overlay novalidate>
+                        <label class="form-label required" for="profileName">Họ tên</label>
+                        <input id="profileName" class="form-control" th:field="*{fullName}" minlength="2" maxlength="100"
+                               pattern=".*[A-Za-zÀ-ỹ].*" required data-pattern-message="Họ tên phải chứa chữ cái."
+                               aria-describedby="profileNameError">
+                        <div id="profileNameError" class="field-error" th:errors="*{fullName}"></div>
+                        <button class="btn btn-primary mt-4" type="submit">Lưu hồ sơ</button>
+                    </form>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <section class="card hp-card" data-reveal>
+        <div class="card-body p-4 p-md-5">
+            <div class="row g-4 align-items-start">
+                <div class="col-lg-4">
+                    <p class="eyebrow">Bảo mật</p>
+                    <h2 class="h3">Đổi mật khẩu</h2>
+                    <p class="text-secondary mb-0">Dùng ít nhất 8 ký tự, bao gồm cả chữ và số. Mật khẩu mới phải khác mật khẩu hiện tại.</p>
+                </div>
+                <div class="col-lg-8">
+                    <form th:action="@{/profile/password}" th:object="${changePasswordRequest}" method="post"
+                          data-dirty-guard data-loading-overlay novalidate>
+                        <div class="mb-3">
+                            <label class="form-label required" for="currentPassword">Mật khẩu hiện tại</label>
+                            <div class="password-wrap">
+                                <input id="currentPassword" class="form-control" type="password" th:field="*{currentPassword}"
+                                       autocomplete="current-password" required aria-describedby="currentPasswordError">
+                                <button class="password-toggle" type="button" data-password-toggle="currentPassword"
+                                        aria-label="Hiện mật khẩu hiện tại" aria-pressed="false">Hiện</button>
+                            </div>
+                            <div id="currentPasswordError" class="field-error" th:errors="*{currentPassword}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required" for="newPassword">Mật khẩu mới</label>
+                            <div class="password-wrap">
+                                <input id="newPassword" class="form-control" type="password" th:field="*{newPassword}"
+                                       minlength="8" maxlength="72" pattern="(?=.*[A-Za-zÀ-ỹ])(?=.*\d).{8,72}"
+                                       data-pattern-message="Mật khẩu phải có ít nhất một chữ và một số."
+                                       autocomplete="new-password" required aria-describedby="newPasswordError passwordStrengthChange">
+                                <button class="password-toggle" type="button" data-password-toggle="newPassword"
+                                        aria-label="Hiện mật khẩu mới" aria-pressed="false">Hiện</button>
+                            </div>
+                            <div id="passwordStrengthChange" class="password-strength" data-password-strength="newPassword" data-score="0">
+                                <div class="password-strength-track" aria-hidden="true"></div>
+                                <div class="password-strength-label"><span>Ít nhất 8 ký tự, gồm chữ và số</span><strong data-strength-label>Chưa nhập</strong></div>
+                            </div>
+                            <div id="newPasswordError" class="field-error" th:errors="*{newPassword}"></div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label required" for="confirmPassword">Xác nhận mật khẩu mới</label>
+                            <div class="password-wrap">
+                                <input id="confirmPassword" class="form-control" type="password" th:field="*{confirmPassword}"
+                                       minlength="8" maxlength="72" autocomplete="new-password" required
+                                       data-match-password="newPassword" aria-describedby="confirmPasswordError">
+                                <button class="password-toggle" type="button" data-password-toggle="confirmPassword"
+                                        aria-label="Hiện mật khẩu xác nhận" aria-pressed="false">Hiện</button>
+                            </div>
+                            <div id="confirmPasswordError" class="field-error" th:errors="*{confirmPassword}"></div>
+                        </div>
+                        <button class="btn btn-outline-primary" type="submit">Cập nhật mật khẩu</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+<th:block th:replace="~{fragments :: scripts}"></th:block>
+</body>
+</html>

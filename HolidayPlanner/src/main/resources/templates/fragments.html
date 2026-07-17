@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="styles">
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+    <link th:href="@{/webjars/bootstrap/5.3.3/css/bootstrap.min.css}" rel="stylesheet">
+    <link th:href="@{/css/design-tokens.css}" rel="stylesheet">
+    <link th:href="@{/css/app.css}" rel="stylesheet">
+    <link th:href="@{/css/components.css}" rel="stylesheet">
+    <link th:href="@{/css/pages.css}" rel="stylesheet">
+    <link th:href="@{/css/responsive.css}" rel="stylesheet">
+</th:block>
+
+<th:block th:fragment="nav">
+    <nav class="navbar navbar-expand-lg navbar-light hp-navbar sticky-top" aria-label="Điều hướng chính">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/dashboard}" aria-label="Holiday Planner - Trang tổng quan">
+                <span class="brand-mark" aria-hidden="true">HP</span>
+                <span class="brand-copy"><strong>Holiday Planner</strong><small>Travel atelier</small></span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#hpNav"
+                    aria-controls="hpNav" aria-expanded="false" aria-label="Mở menu điều hướng">
+                <span class="navbar-toggler-icon" aria-hidden="true"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="hpNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" data-nav-link th:href="@{/dashboard}">Tổng quan</a></li>
+                    <li class="nav-item"><a class="nav-link" data-nav-link th:href="@{/trips}">Kế hoạch</a></li>
+                    <li class="nav-item" th:if="${currentUser != null and currentUser.role.name() == 'ADMIN'}">
+                        <a class="nav-link" data-nav-link th:href="@{/admin/destinations}">Điểm đến</a>
+                    </li>
+                    <li class="nav-item" th:if="${currentUser != null and currentUser.role.name() == 'ADMIN'}">
+                        <a class="nav-link" data-nav-link th:href="@{/admin/users}">Người dùng</a>
+                    </li>
+                </ul>
+                <div class="dropdown" th:if="${currentUser != null}">
+                    <button class="profile-trigger dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false" aria-label="Mở menu hồ sơ">
+                        <span class="avatar avatar-nav">
+                            <img th:if="${currentUser.avatarUrl != null and !#strings.isEmpty(currentUser.avatarUrl)}"
+                                 th:src="${currentUser.avatarUrl}" th:alt="${'Ảnh đại diện của ' + currentUser.fullName}"
+                                 data-fallback="/images/avatar-default.svg">
+                            <span th:unless="${currentUser.avatarUrl != null and !#strings.isEmpty(currentUser.avatarUrl)}"
+                                  th:text="${#strings.substring(currentUser.fullName,0,1)}" aria-hidden="true">U</span>
+                        </span>
+                        <span class="profile-trigger-copy d-none d-md-block">
+                            <strong th:text="${currentUser.fullName}">Người dùng</strong>
+                            <small th:text="${currentUser.role.name() == 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}">Người dùng</small>
+                        </span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end profile-menu">
+                        <div class="profile-menu-header">
+                            <strong class="d-block text-truncate" th:text="${currentUser.fullName}">Người dùng</strong>
+                            <small class="text-secondary d-block text-truncate" th:text="${currentUser.email}">email@example.com</small>
+                        </div>
+                        <a class="dropdown-item mt-2" th:href="@{/profile}">
+                            <span aria-hidden="true">○</span><span>Hồ sơ và ảnh đại diện</span>
+                        </a>
+                        <a class="dropdown-item" th:href="@{/dashboard}">
+                            <span aria-hidden="true">⌂</span><span>Về trang tổng quan</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <form th:action="@{/logout}" method="post">
+                            <button class="dropdown-item" type="submit">
+                                <span aria-hidden="true">→</span><span>Đăng xuất an toàn</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+</th:block>
+
+<th:block th:fragment="alerts">
+    <div id="toastHost" class="toast-host" aria-live="polite" aria-relevant="additions" aria-atomic="false">
+        <article class="hp-toast hp-toast-success" data-toast data-toast-type="success" th:if="${success}" role="status">
+            <span class="toast-icon" aria-hidden="true">✓</span>
+            <div class="toast-content"><strong>Thành công</strong><span th:text="${success}"></span></div>
+            <button class="toast-close" type="button" data-toast-close aria-label="Đóng thông báo">×</button>
+            <span class="toast-progress" aria-hidden="true"></span>
+        </article>
+        <article class="hp-toast hp-toast-error" data-toast data-toast-type="error" th:if="${error}" role="alert">
+            <span class="toast-icon" aria-hidden="true">!</span>
+            <div class="toast-content"><strong>Không thể thực hiện</strong><span th:text="${error}"></span></div>
+            <button class="toast-close" type="button" data-toast-close aria-label="Đóng thông báo">×</button>
+            <span class="toast-progress" aria-hidden="true"></span>
+        </article>
+        <article class="hp-toast hp-toast-warning" data-toast data-toast-type="warning" th:if="${warning}" role="status">
+            <span class="toast-icon" aria-hidden="true">!</span>
+            <div class="toast-content"><strong>Lưu ý</strong><span th:text="${warning}"></span></div>
+            <button class="toast-close" type="button" data-toast-close aria-label="Đóng thông báo">×</button>
+            <span class="toast-progress" aria-hidden="true"></span>
+        </article>
+        <article class="hp-toast hp-toast-info" data-toast data-toast-type="info" th:if="${info}" role="status">
+            <span class="toast-icon" aria-hidden="true">i</span>
+            <div class="toast-content"><strong>Thông tin</strong><span th:text="${info}"></span></div>
+            <button class="toast-close" type="button" data-toast-close aria-label="Đóng thông báo">×</button>
+            <span class="toast-progress" aria-hidden="true"></span>
+        </article>
+        <article class="hp-toast hp-toast-error" data-toast data-toast-type="error" th:if="${param.error}" role="alert">
+            <span class="toast-icon" aria-hidden="true">!</span>
+            <div class="toast-content"><strong>Đăng nhập thất bại</strong><span>Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.</span></div>
+            <button class="toast-close" type="button" data-toast-close aria-label="Đóng thông báo">×</button>
+            <span class="toast-progress" aria-hidden="true"></span>
+        </article>
+        <article class="hp-toast hp-toast-success" data-toast data-toast-type="success" th:if="${param.logout}" role="status">
+            <span class="toast-icon" aria-hidden="true">✓</span>
+            <div class="toast-content"><strong>Đã đăng xuất</strong><span>Phiên làm việc của bạn đã được đóng an toàn.</span></div>
+            <button class="toast-close" type="button" data-toast-close aria-label="Đóng thông báo">×</button>
+            <span class="toast-progress" aria-hidden="true"></span>
+        </article>
+    </div>
+
+    <div id="hpConfirmDialog" class="confirm-backdrop" hidden>
+        <section class="confirm-dialog" role="alertdialog" aria-modal="true"
+                 aria-labelledby="hpConfirmTitle" aria-describedby="hpConfirmMessage" tabindex="-1">
+            <div class="confirm-symbol" data-confirm-symbol aria-hidden="true">!</div>
+            <div class="confirm-copy">
+                <p class="eyebrow">Xác nhận thao tác</p>
+                <h2 id="hpConfirmTitle">Bạn có chắc chắn?</h2>
+                <p id="hpConfirmMessage">Thao tác này sẽ thay đổi dữ liệu của bạn.</p>
+            </div>
+            <div class="confirm-actions">
+                <button id="hpConfirmCancel" class="btn btn-light" type="button">Quay lại</button>
+                <button id="hpConfirmAccept" class="btn btn-danger" type="button">Xác nhận</button>
+            </div>
+        </section>
+    </div>
+
+    <div id="hpLoadingOverlay" class="loading-overlay" hidden aria-hidden="true" role="status">
+        <span class="loading-orbit" aria-hidden="true"></span>
+        <span>Đang lưu hành trình…</span>
+    </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+    <script th:src="@{/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js}"></script>
+    <script th:src="@{/js/app.js}"></script>
+    <script th:src="@{/js/animations.js}"></script>
+    <script th:src="@{/js/modals.js}"></script>
+    <script th:src="@{/js/forms.js}"></script>
+</th:block>
+</body>
+</html>

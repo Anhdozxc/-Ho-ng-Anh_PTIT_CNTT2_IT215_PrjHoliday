@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Quản trị điểm đến và hình ảnh trên Holiday Planner.">
+    <title>Điểm đến - Holiday Planner</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments :: nav}"></div>
+<div th:replace="~{fragments :: alerts}"></div>
+<main class="container hp-main page-enter">
+    <section class="hero-panel mb-4" data-reveal>
+        <div>
+            <p class="eyebrow">Thư viện cảm hứng</p>
+            <h1 class="h2 fw-bold mb-1">Điểm đến Holiday Planner</h1>
+            <p class="mb-0 opacity-75">Quản lý hình ảnh, trạng thái hiển thị và thông tin điểm đến trong một không gian trực quan.</p>
+        </div>
+        <span class="hp-badge hp-badge-admin admin-count" th:text="${destinations.totalElements + ' điểm đến'}"></span>
+    </section>
+
+    <form class="toolbar row g-3 mb-4" method="get" th:action="@{/admin/destinations}" aria-label="Bộ lọc điểm đến" data-reveal>
+        <div class="col-lg-7">
+            <label class="filter-label" for="destinationSearch">Tên, thành phố hoặc quốc gia</label>
+            <input id="destinationSearch" class="form-control" name="q" maxlength="150" th:value="${q}"
+                   placeholder="Tìm theo tên, thành phố hoặc quốc gia...">
+        </div>
+        <div class="col-sm-7 col-lg-3">
+            <label class="filter-label" for="destinationActive">Trạng thái</label>
+            <select id="destinationActive" class="form-select" name="active">
+                <option value="" th:selected="${selectedActive == null}">Mọi trạng thái</option>
+                <option value="true" th:selected="${selectedActive != null and selectedActive}">Đang hiển thị</option>
+                <option value="false" th:selected="${selectedActive != null and !selectedActive}">Đang ẩn</option>
+            </select>
+        </div>
+        <div class="col-sm-5 col-lg-2 d-grid align-self-end"><button class="btn btn-outline-primary" type="submit">Áp dụng bộ lọc</button></div>
+    </form>
+
+    <section class="card hp-card mb-4" th:if="${editDestinationId != null}"
+             data-edit-validation-panel aria-labelledby="editDestinationValidationTitle">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start mb-3">
+                <div>
+                    <p class="eyebrow mb-1">Cần kiểm tra lại</p>
+                    <h2 id="editDestinationValidationTitle" class="h5 fw-bold mb-1">Chỉnh sửa điểm đến</h2>
+                    <p class="small text-secondary mb-0">Dữ liệu bạn vừa nhập được giữ lại. Hãy sửa các trường được đánh dấu rồi lưu lại.</p>
+                </div>
+                <a class="btn btn-sm btn-light"
+                   th:href="@{/admin/destinations(q=${q},active=${selectedActive},page=${destinations.number})}">Hủy chỉnh sửa</a>
+            </div>
+            <form th:action="@{/admin/destinations/{id}(id=${editDestinationId})}"
+                  th:object="${editDestinationRequest}" method="post" enctype="multipart/form-data"
+                  data-dirty-guard data-loading-overlay novalidate>
+                <div class="field-error mb-3" role="alert" th:if="${#fields.hasGlobalErrors()}">
+                    <div th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+                </div>
+                <div class="row g-4">
+                    <div class="col-lg-4">
+                        <img id="invalidEditDestinationPreview" class="image-preview mb-3"
+                             th:src="${editDestinationRequest.imageUrl ?: '/images/destination-fallback.svg'}"
+                             data-fallback="/images/destination-fallback.svg" alt="Xem trước ảnh điểm đến">
+                        <label class="form-label" for="invalidEditDestinationFile">Ảnh tải lên</label>
+                        <input id="invalidEditDestinationFile" class="form-control" type="file" name="imageFile"
+                               accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                               data-image-preview="invalidEditDestinationPreview" th:disabled="${!imageUploadAvailable}">
+                        <div class="field-hint mt-2">Vì lý do bảo mật, hãy chọn lại file nếu lần gửi trước có đính kèm ảnh.</div>
+                    </div>
+                    <div class="col-lg-8">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label required" for="invalidEditDestinationName">Tên</label>
+                                <input id="invalidEditDestinationName" class="form-control" th:classappend="${#fields.hasErrors('name')} ? ' is-invalid'"
+                                       th:field="*{name}" maxlength="140" required aria-describedby="invalidEditDestinationNameError">
+                                <div id="invalidEditDestinationNameError" class="field-error" th:errors="*{name}"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label required" for="invalidEditDestinationCountry">Quốc gia</label>
+                                <input id="invalidEditDestinationCountry" class="form-control" th:classappend="${#fields.hasErrors('country')} ? ' is-invalid'"
+                                       th:field="*{country}" maxlength="120" required aria-describedby="invalidEditDestinationCountryError">
+                                <div id="invalidEditDestinationCountryError" class="field-error" th:errors="*{country}"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="invalidEditDestinationCity">Thành phố</label>
+                                <input id="invalidEditDestinationCity" class="form-control" th:classappend="${#fields.hasErrors('city')} ? ' is-invalid'"
+                                       th:field="*{city}" maxlength="120" aria-describedby="invalidEditDestinationCityError">
+                                <div id="invalidEditDestinationCityError" class="field-error" th:errors="*{city}"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="invalidEditDestinationImage">URL ảnh dự phòng</label>
+                                <input id="invalidEditDestinationImage" class="form-control" th:classappend="${#fields.hasErrors('imageUrl')} ? ' is-invalid'"
+                                       type="url" th:field="*{imageUrl}" maxlength="700"
+                                       data-url-preview="invalidEditDestinationPreview" aria-describedby="invalidEditDestinationImageError">
+                                <div id="invalidEditDestinationImageError" class="field-error" th:errors="*{imageUrl}"></div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="invalidEditDestinationDescription">Mô tả</label>
+                                <textarea id="invalidEditDestinationDescription" class="form-control" th:classappend="${#fields.hasErrors('description')} ? ' is-invalid'"
+                                          th:field="*{description}" rows="4" maxlength="1500"
+                                          aria-describedby="invalidEditDestinationDescriptionError"></textarea>
+                                <div id="invalidEditDestinationDescriptionError" class="field-error" th:errors="*{description}"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" th:field="*{active}">
+                        <input type="hidden" name="q" th:value="${q}">
+                        <input type="hidden" name="filterActive" th:value="${selectedActive}">
+                        <input type="hidden" name="page" th:value="${destinations.number}">
+                        <div class="d-flex justify-content-end mt-3">
+                            <button class="btn btn-primary" type="submit">Lưu lại điểm đến</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <section class="card hp-card">
+                <div class="card-body p-4">
+                    <div class="empty-state p-5" th:if="${destinations.empty}">
+                        <h2 class="h5">Không tìm thấy điểm đến</h2>
+                        <p class="mb-0">Hãy thay đổi từ khóa hoặc trạng thái lọc.</p>
+                    </div>
+                    <div class="table-responsive" th:unless="${destinations.empty}">
+                        <table class="table responsive-table align-middle">
+                            <caption class="visually-hidden">Danh sách điểm đến</caption>
+                            <thead><tr><th>Điểm đến</th><th>Vị trí</th><th>Trạng thái</th><th class="text-end">Thao tác</th></tr></thead>
+                            <tbody>
+                            <tr th:each="d : ${destinations}">
+                                <td data-label="Điểm đến">
+                                    <div class="d-flex gap-3 align-items-center">
+                                        <img class="destination-thumb" th:src="${d.imageUrl ?: '/images/destination-fallback.svg'}"
+                                             data-fallback="/images/destination-fallback.svg" th:alt="${'Ảnh điểm đến ' + d.name}">
+                                        <div class="destination-copy"><strong th:text="${d.name}"></strong><div class="small text-secondary text-truncate" th:text="${d.description ?: 'Chưa có mô tả'}"></div></div>
+                                    </div>
+                                </td>
+                                <td data-label="Vị trí" th:text="${(d.city != null ? d.city + ', ' : '') + d.country}"></td>
+                                <td data-label="Trạng thái"><span class="hp-badge" th:classappend="${d.active ? ' hp-badge-active' : ' hp-badge-neutral'}" th:text="${d.active ? 'Đang hiển thị' : 'Đang ẩn'}"></span></td>
+                                <td data-label="Thao tác" class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal"
+                                                th:data-bs-target="${'#editDestination' + d.id}">Sửa</button>
+                                        <form th:action="@{/admin/destinations/{id}/toggle(id=${d.id})}" method="post"
+                                              th:data-confirm="${d.active ? 'Điểm đến sẽ không còn xuất hiện khi người dùng tạo kế hoạch mới.' : 'Điểm đến sẽ xuất hiện trở lại trong danh sách lựa chọn.'}"
+                                              th:data-confirm-title="${d.active ? 'Ẩn điểm đến này?' : 'Hiện lại điểm đến này?'}"
+                                              th:data-confirm-accept="${d.active ? 'Ẩn điểm đến' : 'Hiện điểm đến'}"
+                                              th:data-confirm-tone="${d.active ? 'danger' : 'warning'}">
+                                            <input type="hidden" name="active" th:value="${!d.active}">
+                                            <button class="btn btn-sm" type="submit"
+                                                    th:classappend="${d.active ? ' btn-outline-danger' : ' btn-outline-success'}"
+                                                    th:text="${d.active ? 'Ẩn' : 'Hiện'}"></button>
+                                        </form>
+                                    </div>
+
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <nav th:if="${destinations.totalPages > 1}" aria-label="Phân trang điểm đến">
+                        <ul class="pagination justify-content-center mb-0">
+                            <li class="page-item" th:classappend="${destinations.first ? ' disabled' : ''}"><a class="page-link" th:href="@{/admin/destinations(q=${q},active=${selectedActive},page=${destinations.number - 1})}">Trước</a></li>
+                            <li class="page-item" th:each="p : ${#numbers.sequence(0, destinations.totalPages - 1)}" th:classappend="${p == destinations.number ? ' active' : ''}"><a class="page-link" th:href="@{/admin/destinations(q=${q},active=${selectedActive},page=${p})}" th:text="${p + 1}"></a></li>
+                            <li class="page-item" th:classappend="${destinations.last ? ' disabled' : ''}"><a class="page-link" th:href="@{/admin/destinations(q=${q},active=${selectedActive},page=${destinations.number + 1})}">Sau</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-xl-4">
+            <section class="card hp-card sticky-preview">
+                <img id="newDestinationPreview" class="cover-image" src="/images/destination-fallback.svg"
+                     data-fallback="/images/destination-fallback.svg" alt="Xem trước ảnh điểm đến mới">
+                <div class="card-body p-4">
+                    <p class="eyebrow">Điểm đến mới</p>
+                    <h2 class="h5 fw-bold">Thêm nguồn cảm hứng</h2>
+                     <p class="small text-secondary" th:text="${imageUploadAvailable ? 'Tải ảnh lên Cloudinary hoặc dùng URL dự phòng.' : 'Cloudinary chưa cấu hình; URL ảnh và ảnh mặc định vẫn hoạt động.'}"></p>
+                     <form th:action="@{/admin/destinations}" th:object="${destinationRequest}" method="post"
+                           enctype="multipart/form-data" data-dirty-guard data-loading-overlay novalidate>
+                        <div class="field-error mb-3" role="alert" th:if="${#fields.hasGlobalErrors()}">
+                            <div th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+                        </div>
+                        <div class="mb-3"><label class="form-label required" for="name">Tên</label><input id="name" class="form-control" th:classappend="${#fields.hasErrors('name')} ? ' is-invalid'" th:field="*{name}" maxlength="140" required aria-describedby="destinationNameError"><div id="destinationNameError" class="field-error" th:errors="*{name}"></div></div>
+                        <div class="mb-3"><label class="form-label" for="city">Thành phố</label><input id="city" class="form-control" th:classappend="${#fields.hasErrors('city')} ? ' is-invalid'" th:field="*{city}" maxlength="120" aria-describedby="destinationCityError"><div id="destinationCityError" class="field-error" th:errors="*{city}"></div></div>
+                        <div class="mb-3"><label class="form-label required" for="country">Quốc gia</label><input id="country" class="form-control" th:classappend="${#fields.hasErrors('country')} ? ' is-invalid'" th:field="*{country}" maxlength="120" required aria-describedby="destinationCountryError"><div id="destinationCountryError" class="field-error" th:errors="*{country}"></div></div>
+                        <div class="mb-3">
+                            <label class="form-label" for="newDestinationFile">Tải ảnh lên</label>
+                            <input id="newDestinationFile" class="form-control" type="file" name="imageFile"
+                                   accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                   data-image-preview="newDestinationPreview" th:disabled="${!imageUploadAvailable}">
+                            <div class="field-hint mt-1">JPG, JPEG, PNG hoặc WebP; tối đa 5 MB.</div>
+                        </div>
+                        <div class="mb-3"><label class="form-label" for="imageUrl">URL ảnh dự phòng</label><input id="imageUrl" class="form-control" th:classappend="${#fields.hasErrors('imageUrl')} ? ' is-invalid'" type="url" th:field="*{imageUrl}" maxlength="700" data-url-preview="newDestinationPreview" aria-describedby="destinationImageError"><div id="destinationImageError" class="field-error" th:errors="*{imageUrl}"></div></div>
+                        <div class="mb-3"><label class="form-label" for="description">Mô tả</label><textarea id="description" class="form-control" th:classappend="${#fields.hasErrors('description')} ? ' is-invalid'" rows="4" th:field="*{description}" maxlength="1500" aria-describedby="destinationDescriptionError"></textarea><div id="destinationDescriptionError" class="field-error" th:errors="*{description}"></div></div>
+                         <input type="hidden" th:field="*{active}" value="true">
+                         <input type="hidden" name="q" th:value="${q}">
+                         <input type="hidden" name="filterActive" th:value="${selectedActive}">
+                         <input type="hidden" name="page" th:value="${destinations.number}">
+                         <button class="btn btn-primary w-100" type="submit">Thêm điểm đến</button>
+                    </form>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+
+<th:block th:each="d : ${destinations}">
+    <div class="modal fade text-start" th:id="${'editDestination' + d.id}"
+         th:aria-labelledby="${'editDestinationTitle' + d.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <form th:action="@{/admin/destinations/{id}(id=${d.id})}" method="post"
+                      enctype="multipart/form-data" novalidate data-loading-overlay>
+                    <div class="modal-header">
+                        <div>
+                            <p class="eyebrow mb-1">Chỉnh sửa</p>
+                            <h2 class="modal-title h5" th:id="${'editDestinationTitle' + d.id}" th:text="${d.name}"></h2>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <img class="image-preview mb-3" th:id="${'editDestinationPreview' + d.id}"
+                                     th:src="${d.imageUrl ?: '/images/destination-fallback.svg'}"
+                                     data-fallback="/images/destination-fallback.svg" alt="Xem trước ảnh điểm đến">
+                                <label class="form-label" th:for="${'editDestinationFile' + d.id}">Ảnh tải lên</label>
+                                <input class="form-control" type="file" name="imageFile"
+                                       th:id="${'editDestinationFile' + d.id}"
+                                       accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                       th:data-image-preview="${'editDestinationPreview' + d.id}"
+                                       th:disabled="${!imageUploadAvailable}">
+                                <div class="field-hint mt-2"
+                                     th:text="${imageUploadAvailable ? 'File tải lên được ưu tiên hơn URL, tối đa 5 MB.' : 'Cloudinary chưa cấu hình; bạn vẫn có thể dùng URL ảnh.'}"></div>
+                            </div>
+                            <div class="col-md-7">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label required" th:for="${'editDestinationName' + d.id}">Tên</label>
+                                        <input class="form-control" name="name" th:id="${'editDestinationName' + d.id}"
+                                               th:value="${d.name}" maxlength="140" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label required" th:for="${'editDestinationCountry' + d.id}">Quốc gia</label>
+                                        <input class="form-control" name="country" th:id="${'editDestinationCountry' + d.id}"
+                                               th:value="${d.country}" maxlength="120" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label" th:for="${'editDestinationCity' + d.id}">Thành phố</label>
+                                        <input class="form-control" name="city" th:id="${'editDestinationCity' + d.id}"
+                                               th:value="${d.city}" maxlength="120">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label" th:for="${'editDestinationImage' + d.id}">URL ảnh dự phòng</label>
+                                        <input class="form-control" type="url" name="imageUrl"
+                                               th:id="${'editDestinationImage' + d.id}" th:value="${d.imageUrl}"
+                                               maxlength="700" th:data-url-preview="${'editDestinationPreview' + d.id}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label" th:for="${'editDestinationDescription' + d.id}">Mô tả</label>
+                                        <textarea class="form-control" name="description"
+                                                  th:id="${'editDestinationDescription' + d.id}" rows="4"
+                                                  maxlength="1500" th:text="${d.description}"></textarea>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="active" th:value="${d.active}">
+                                <input type="hidden" name="q" th:value="${q}">
+                                <input type="hidden" name="filterActive" th:value="${selectedActive}">
+                                <input type="hidden" name="page" th:value="${destinations.number}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                        <button class="btn btn-primary" type="submit">Lưu thay đổi</button>
+                    </div>
+                </form>
+                <div class="px-3 pb-3" th:if="${d.imagePublicId != null}">
+                    <form th:action="@{/admin/destinations/{id}/image/delete(id=${d.id})}" method="post"
+                          data-confirm="Ảnh Cloudinary hiện tại sẽ bị xóa và điểm đến dùng ảnh mặc định."
+                          data-confirm-title="Xóa ảnh điểm đến?" data-confirm-accept="Xóa ảnh">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Xóa ảnh Cloudinary</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:replace="~{fragments :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Đăng nhập Holiday Planner để quản lý lịch trình, ngân sách và checklist du lịch.">
+    <title>Đăng nhập - Holiday Planner</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body class="auth-bg">
+<div th:replace="~{fragments :: alerts}"></div>
+<main class="auth-shell page-enter">
+    <section class="auth-visual auth-visual--login" aria-labelledby="loginVisualTitle">
+        <div data-reveal>
+            <p class="eyebrow">Hành trình được tuyển chọn</p>
+            <h1 id="loginVisualTitle">Mỗi chuyến đi đáng nhớ bắt đầu từ một kế hoạch tinh tế.</h1>
+            <p class="mb-0">Lịch trình, ngân sách, ghi chú đặt dịch vụ và checklist được kết nối trong một không gian riêng của bạn.</p>
+            <ul class="auth-benefits" aria-label="Lợi ích của Holiday Planner">
+                <li>Theo dõi chi phí rõ ràng trong suốt chuyến đi</li>
+                <li>Chuẩn bị đầy đủ mà không bỏ sót công việc</li>
+                <li>Truy cập thuận tiện trên máy tính và điện thoại</li>
+            </ul>
+        </div>
+    </section>
+    <section class="auth-form" aria-labelledby="loginTitle">
+        <a class="auth-wordmark" th:href="@{/login}" aria-label="Holiday Planner">
+            <span class="brand-mark" aria-hidden="true">HP</span>
+            <span class="brand-copy"><strong>Holiday Planner</strong><small>Travel atelier</small></span>
+        </a>
+        <div data-reveal>
+            <p class="eyebrow">Chào mừng trở lại</p>
+            <h2 id="loginTitle" class="mb-2">Tiếp tục hành trình</h2>
+            <p class="text-secondary mb-4">Đăng nhập bằng tài khoản của bạn để tiếp tục lên kế hoạch.</p>
+            <form th:action="@{/login}" method="post" novalidate data-loading-overlay>
+                <div class="mb-3">
+                    <label class="form-label required" for="username">Email</label>
+                    <input class="form-control form-control-lg" id="username" type="email" name="username"
+                           autocomplete="email" inputmode="email" maxlength="150" required autofocus
+                           placeholder="tenban@example.com" aria-describedby="loginEmailHelp">
+                    <div id="loginEmailHelp" class="invalid-feedback">Vui lòng nhập email hợp lệ.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label required" for="loginPassword">Mật khẩu</label>
+                    <div class="password-wrap">
+                        <input class="form-control form-control-lg" id="loginPassword" type="password" name="password"
+                               autocomplete="current-password" minlength="8" maxlength="72" required
+                               placeholder="Nhập mật khẩu" aria-describedby="loginPasswordHelp">
+                        <button class="password-toggle" type="button" data-password-toggle="loginPassword"
+                                aria-label="Hiện mật khẩu" aria-pressed="false">Hiện</button>
+                    </div>
+                    <div id="loginPasswordHelp" class="invalid-feedback">Mật khẩu không được để trống.</div>
+                </div>
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" name="remember-me" id="rememberMe">
+                    <label class="form-check-label" for="rememberMe">Ghi nhớ đăng nhập trên thiết bị này</label>
+                </div>
+                <button class="btn btn-primary btn-lg w-100" type="submit">Đăng nhập</button>
+            </form>
+            <p class="text-center text-secondary mt-4 mb-0">Chưa có tài khoản? <a th:href="@{/register}">Tạo tài khoản</a></p>
+        </div>
+    </section>
+</main>
+<th:block th:replace="~{fragments :: scripts}"></th:block>
+</body>
+</html>

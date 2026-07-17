@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Holiday Planner">
+  <rect width="64" height="64" rx="18" fill="#fbf8f1"/>
+  <circle cx="32" cy="32" r="25" fill="none" stroke="#a77b3f" stroke-width="2"/>
+  <path d="M20 19v26M44 19v26M20 32h24" fill="none" stroke="#2d302a" stroke-width="5" stroke-linecap="round"/>
+</svg>

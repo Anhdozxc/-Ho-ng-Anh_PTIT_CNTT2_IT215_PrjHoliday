@@ -1,0 +1,32 @@
+# Java / Maven build output
+**/target/
+*.class
+
+# IntelliJ IDEA
+.idea/
+**/.idea/
+*.iml
+*.ipr
+*.iws
+
+# Logs, reports and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+hs_err_pid*
+replay_pid*
+.codex-tmp/
+
+# Local environment and secret-bearing configuration
+.env
+.env.*
+!.env.example
+**/application-local.properties
+**/application-secret.properties
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

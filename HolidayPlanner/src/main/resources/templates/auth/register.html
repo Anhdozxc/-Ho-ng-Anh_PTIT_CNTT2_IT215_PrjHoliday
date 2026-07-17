@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Tạo tài khoản Holiday Planner để bắt đầu lên kế hoạch du lịch.">
+    <title>Đăng ký - Holiday Planner</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body class="auth-bg">
+<div th:replace="~{fragments :: alerts}"></div>
+<main class="auth-shell page-enter">
+    <section class="auth-visual auth-visual--register" aria-labelledby="registerVisualTitle">
+        <div data-reveal>
+            <p class="eyebrow">Từ cảm hứng đến hành trình</p>
+            <h1 id="registerVisualTitle">Một nơi cho mọi điều bạn mong chờ ở chuyến đi.</h1>
+            <p class="mb-0">Bắt đầu với một ý tưởng, rồi dần hoàn thiện từng ngày, từng khoản chi và từng việc cần chuẩn bị.</p>
+            <ul class="auth-benefits" aria-label="Lợi ích của Holiday Planner">
+                <li>Lịch trình theo ngày dễ theo dõi</li>
+                <li>Ngân sách minh bạch và có cảnh báo</li>
+                <li>Ghi chú đặt dịch vụ luôn trong tầm tay</li>
+            </ul>
+        </div>
+    </section>
+    <section class="auth-form" aria-labelledby="registerTitle">
+        <a class="auth-wordmark" th:href="@{/login}" aria-label="Holiday Planner">
+            <span class="brand-mark" aria-hidden="true">HP</span>
+            <span class="brand-copy"><strong>Holiday Planner</strong><small>Travel atelier</small></span>
+        </a>
+        <div data-reveal>
+            <p class="eyebrow">Bắt đầu miễn phí</p>
+            <h2 id="registerTitle" class="mb-2">Tạo tài khoản</h2>
+            <p class="text-secondary mb-4">Chỉ vài thông tin để mở không gian hành trình của riêng bạn.</p>
+            <form th:action="@{/register}" th:object="${registerRequest}" method="post"
+                  novalidate data-dirty-guard data-loading-overlay>
+                <div class="form-summary mb-3" role="alert" th:if="${#fields.hasGlobalErrors()}">
+                    <strong>Vui lòng kiểm tra lại thông tin</strong>
+                    <ul class="mb-0 mt-1"><li th:each="error : ${#fields.globalErrors()}" th:text="${error}"></li></ul>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label required" for="fullName">Họ tên</label>
+                    <input class="form-control" id="fullName" th:field="*{fullName}" autocomplete="name"
+                           minlength="2" maxlength="100" pattern=".*[A-Za-zÀ-ỹ].*" required
+                           data-pattern-message="Họ tên phải chứa chữ cái." placeholder="Nguyễn Minh Anh"
+                           aria-describedby="fullNameError">
+                    <div id="fullNameError" class="field-error" th:errors="*{fullName}"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label required" for="email">Email</label>
+                    <input class="form-control" id="email" type="email" th:field="*{email}" autocomplete="email"
+                           inputmode="email" maxlength="150" required placeholder="tenban@example.com"
+                           aria-describedby="emailError">
+                    <div id="emailError" class="field-error" th:errors="*{email}"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label required" for="registerPassword">Mật khẩu</label>
+                    <div class="password-wrap">
+                        <input class="form-control" id="registerPassword" type="password" th:field="*{password}"
+                               autocomplete="new-password" minlength="8" maxlength="72"
+                               pattern="(?=.*[A-Za-zÀ-ỹ])(?=.*\d).{8,72}" required
+                               data-pattern-message="Mật khẩu phải có ít nhất một chữ và một số."
+                               placeholder="Tối thiểu 8 ký tự" aria-describedby="passwordError passwordStrength">
+                        <button class="password-toggle" type="button" data-password-toggle="registerPassword"
+                                aria-label="Hiện mật khẩu" aria-pressed="false">Hiện</button>
+                    </div>
+                    <div id="passwordStrength" class="password-strength" data-password-strength="registerPassword" data-score="0">
+                        <div class="password-strength-track" aria-hidden="true"></div>
+                        <div class="password-strength-label"><span>Ít nhất 8 ký tự, gồm chữ và số</span><strong data-strength-label>Chưa nhập</strong></div>
+                    </div>
+                    <div id="passwordError" class="field-error" th:errors="*{password}"></div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label required" for="registerConfirmPassword">Xác nhận mật khẩu</label>
+                    <div class="password-wrap">
+                        <input class="form-control" id="registerConfirmPassword" type="password" th:field="*{confirmPassword}"
+                               autocomplete="new-password" minlength="8" maxlength="72" required
+                               data-match-password="registerPassword" aria-describedby="confirmPasswordError">
+                        <button class="password-toggle" type="button" data-password-toggle="registerConfirmPassword"
+                                aria-label="Hiện mật khẩu xác nhận" aria-pressed="false">Hiện</button>
+                    </div>
+                    <div id="confirmPasswordError" class="field-error" th:errors="*{confirmPassword}"></div>
+                </div>
+                <button class="btn btn-primary btn-lg w-100" type="submit">Tạo tài khoản</button>
+            </form>
+            <p class="text-center text-secondary mt-4 mb-0">Đã có tài khoản? <a th:href="@{/login}">Đăng nhập</a></p>
+        </div>
+    </section>
+</main>
+<th:block th:replace="~{fragments :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Tìm kiếm và quản lý các kế hoạch du lịch trên Holiday Planner.">
+    <title>Kế hoạch - Holiday Planner</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments :: nav}"></div>
+<div th:replace="~{fragments :: alerts}"></div>
+<main class="container hp-main page-enter">
+    <header class="hero-panel mb-4" data-reveal>
+        <div>
+            <p class="eyebrow" th:text="${currentUser.role.name() == 'ADMIN' ? 'Chế độ hỗ trợ toàn hệ thống' : 'Bộ sưu tập hành trình'}">Bộ sưu tập hành trình</p>
+            <h1 class="display-5 mb-2" th:text="${currentUser.role.name() == 'ADMIN' ? 'Tất cả kế hoạch' : 'Kế hoạch của tôi'}">Kế hoạch của tôi</h1>
+            <p class="mb-0 text-secondary">Tìm kiếm, lọc và sắp xếp để trở lại đúng hành trình bạn cần.</p>
+        </div>
+        <a class="btn btn-primary btn-lg" th:if="${currentUser.role.name() != 'ADMIN'}" th:href="@{/trips/new}">Tạo kế hoạch mới</a>
+    </header>
+
+    <form class="toolbar row g-3 mb-4" method="get" th:action="@{/trips}" data-reveal aria-label="Bộ lọc kế hoạch">
+        <div class="col-lg-4">
+            <label class="filter-label" for="tripSearch">Tìm kiếm</label>
+            <input id="tripSearch" class="form-control" name="q" maxlength="180" th:value="${q}"
+                   placeholder="Tên chuyến đi hoặc điểm đến">
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <label class="filter-label" for="tripStatusFilter">Trạng thái</label>
+            <select id="tripStatusFilter" class="form-select" name="status">
+                <option value="">Mọi trạng thái</option>
+                <option th:each="status : ${statuses}" th:value="${status}"
+                        th:text="${status.name() == 'DRAFT' ? 'Nháp' : status.name() == 'PLANNED' ? 'Đã lập kế hoạch' : status.name() == 'ONGOING' ? 'Đang đi' : status.name() == 'COMPLETED' ? 'Hoàn thành' : 'Đã hủy'}"
+                        th:selected="${status == selectedStatus}">Nháp</option>
+            </select>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <label class="filter-label" for="tripSort">Sắp xếp theo</label>
+            <select id="tripSort" class="form-select" name="sort">
+                <option value="startDate" th:selected="${selectedSort == 'startDate'}">Ngày khởi hành</option>
+                <option value="title" th:selected="${selectedSort == 'title'}">Tên chuyến đi</option>
+                <option value="createdAt" th:selected="${selectedSort == 'createdAt'}">Ngày tạo</option>
+            </select>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <label class="filter-label" for="tripDirection">Thứ tự</label>
+            <select id="tripDirection" class="form-select" name="direction">
+                <option value="desc" th:selected="${selectedDirection == 'desc'}">Giảm dần</option>
+                <option value="asc" th:selected="${selectedDirection == 'asc'}">Tăng dần</option>
+            </select>
+        </div>
+        <input type="hidden" name="size" th:value="${selectedSize}">
+        <div class="col-sm-6 col-lg-2 d-grid align-self-end">
+            <button class="btn btn-outline-primary" type="submit">Áp dụng bộ lọc</button>
+        </div>
+    </form>
+
+    <section class="empty-state" th:if="${tripPage.empty}" aria-labelledby="emptyTripsTitle" data-reveal>
+        <h2 id="emptyTripsTitle" class="h4 mb-0">Không tìm thấy kế hoạch</h2>
+        <p class="mb-2">Hãy thử bỏ bộ lọc hoặc bắt đầu một hành trình mới.</p>
+        <a class="btn btn-primary" th:if="${currentUser.role.name() != 'ADMIN'}" th:href="@{/trips/new}">Tạo kế hoạch</a>
+    </section>
+
+    <section class="trip-grid" th:unless="${tripPage.empty}" aria-label="Danh sách kế hoạch" data-stagger>
+        <article class="card hp-card trip-card" th:each="trip : ${tripPage.content}">
+            <div class="trip-card-media">
+                <img th:src="${trip.destination.imageUrl ?: '/images/destination-fallback.svg'}"
+                     data-fallback="/images/destination-fallback.svg" loading="lazy"
+                     th:alt="${'Phong cảnh ' + trip.destination.name}">
+                <span class="hp-badge"
+                      th:classappend="${trip.status.name() == 'DRAFT' ? ' hp-badge-draft' : trip.status.name() == 'PLANNED' ? ' hp-badge-planned' : trip.status.name() == 'ONGOING' ? ' hp-badge-ongoing' : trip.status.name() == 'COMPLETED' ? ' hp-badge-completed' : ' hp-badge-cancelled'}"
+                      th:text="${trip.status.name() == 'DRAFT' ? 'Nháp' : trip.status.name() == 'PLANNED' ? 'Đã lập kế hoạch' : trip.status.name() == 'ONGOING' ? 'Đang đi' : trip.status.name() == 'COMPLETED' ? 'Hoàn thành' : 'Đã hủy'}">Nháp</span>
+            </div>
+            <div class="card-body p-4 d-flex flex-column">
+                <p class="eyebrow mb-1" th:text="${trip.destination.name + ' · ' + trip.destination.country}">Điểm đến</p>
+                <h2 class="h4 mb-1" th:text="${trip.title}">Tên chuyến đi</h2>
+                <div class="trip-meta">
+                    <span><strong th:text="${#temporals.format(trip.startDate,'dd/MM')}">01/01</strong><small>Khởi hành</small></span>
+                    <span><strong th:text="${trip.peopleCount}">1</strong><small>Người</small></span>
+                    <span>
+                        <strong th:text="${trip.budget != null ? #numbers.formatDecimal(trip.budget,0,'COMMA',0,'POINT') : 'Chưa đặt'}">0</strong>
+                        <small>Ngân sách ₫</small>
+                    </span>
+                </div>
+                <p class="small text-secondary" th:if="${currentUser.role.name() == 'ADMIN'}">Chủ sở hữu: <strong th:text="${trip.owner.fullName}">Người dùng</strong></p>
+                <a class="btn btn-outline-primary w-100 mt-auto" th:href="@{/trips/{id}(id=${trip.id})}">Mở hành trình</a>
+            </div>
+        </article>
+    </section>
+
+    <nav class="mt-4" th:if="${tripPage.totalPages > 1}" aria-label="Phân trang kế hoạch">
+        <ul class="pagination justify-content-center mb-0">
+            <li class="page-item" th:classappend="${tripPage.first ? ' disabled' : ''}">
+                <a class="page-link" th:if="${!tripPage.first}"
+                   th:href="@{/trips(q=${q},status=${selectedStatus},sort=${selectedSort},direction=${selectedDirection},size=${selectedSize},page=${tripPage.number - 1})}">Trước</a>
+                <span class="page-link" th:if="${tripPage.first}" aria-disabled="true">Trước</span>
+            </li>
+            <li class="page-item" th:each="pageNumber : ${#numbers.sequence(0, tripPage.totalPages - 1)}"
+                th:classappend="${pageNumber == tripPage.number ? ' active' : ''}">
+                <a class="page-link" th:href="@{/trips(q=${q},status=${selectedStatus},sort=${selectedSort},direction=${selectedDirection},size=${selectedSize},page=${pageNumber})}"
+                   th:text="${pageNumber + 1}" th:aria-current="${pageNumber == tripPage.number ? 'page' : null}">1</a>
+            </li>
+            <li class="page-item" th:classappend="${tripPage.last ? ' disabled' : ''}">
+                <a class="page-link" th:if="${!tripPage.last}"
+                   th:href="@{/trips(q=${q},status=${selectedStatus},sort=${selectedSort},direction=${selectedDirection},size=${selectedSize},page=${tripPage.number + 1})}">Sau</a>
+                <span class="page-link" th:if="${tripPage.last}" aria-disabled="true">Sau</span>
+            </li>
+        </ul>
+    </nav>
+</main>
+<th:block th:replace="~{fragments :: scripts}"></th:block>
+</body>
+</html>

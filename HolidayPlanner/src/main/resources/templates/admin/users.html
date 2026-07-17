@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Quản trị trạng thái và vai trò người dùng Holiday Planner.">
+    <title>Người dùng - Holiday Planner</title>
+    <th:block th:replace="~{fragments :: styles}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments :: nav}"></div>
+<div th:replace="~{fragments :: alerts}"></div>
+<main class="container hp-main page-enter">
+    <header class="hero-panel mb-4" data-reveal>
+        <div>
+            <p class="eyebrow">Trung tâm quản trị</p>
+            <h1 class="display-5 mb-2">Cộng đồng Holiday Planner</h1>
+            <p class="text-secondary mb-0">Tìm kiếm, lọc và kiểm soát quyền truy cập mà không hiển thị dữ liệu mật khẩu.</p>
+        </div>
+        <span class="hp-badge hp-badge-admin admin-count" th:text="${users.totalElements + ' tài khoản'}">0 tài khoản</span>
+    </header>
+
+    <form class="toolbar row g-3 mb-4" method="get" th:action="@{/admin/users}" aria-label="Bộ lọc người dùng" data-reveal>
+        <div class="col-lg-5">
+            <label class="filter-label" for="userSearch">Tên hoặc email</label>
+            <input id="userSearch" class="form-control" name="q" maxlength="150" th:value="${q}" placeholder="Tìm theo tên hoặc email">
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <label class="filter-label" for="userRole">Vai trò</label>
+            <select id="userRole" class="form-select" name="role">
+                <option value="">Mọi vai trò</option>
+                <option th:each="role : ${roles}" th:value="${role}"
+                        th:text="${role.name() == 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}"
+                        th:selected="${role == selectedRole}">Người dùng</option>
+            </select>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <label class="filter-label" for="userStatus">Trạng thái</label>
+            <select id="userStatus" class="form-select" name="status">
+                <option value="">Mọi trạng thái</option>
+                <option th:each="status : ${statuses}" th:value="${status}"
+                        th:text="${status.name() == 'ACTIVE' ? 'Đang hoạt động' : 'Đã khóa'}"
+                        th:selected="${status == selectedStatus}">Đang hoạt động</option>
+            </select>
+        </div>
+        <div class="col-lg-2 d-grid align-self-end"><button class="btn btn-outline-primary" type="submit">Áp dụng bộ lọc</button></div>
+    </form>
+
+    <section class="card hp-card" data-reveal>
+        <div class="card-body p-3 p-md-4">
+            <div class="empty-state" th:if="${users.empty}">
+                <h2 class="h5 mb-0">Không tìm thấy tài khoản</h2><p class="mb-0">Hãy thay đổi từ khóa hoặc bộ lọc.</p>
+            </div>
+            <div class="table-responsive" th:unless="${users.empty}">
+                <table class="table responsive-table align-middle">
+                    <caption class="visually-hidden">Danh sách tài khoản người dùng</caption>
+                    <thead><tr><th>Người dùng</th><th>Vai trò</th><th>Trạng thái</th><th>Ngày tạo</th><th class="text-end">Thao tác</th></tr></thead>
+                    <tbody>
+                    <tr th:each="user : ${users.content}">
+                        <td data-label="Người dùng">
+                            <div class="d-flex align-items-center gap-3 min-w-0">
+                                <span class="avatar avatar-nav">
+                                    <img th:if="${user.avatarUrl != null and !#strings.isEmpty(user.avatarUrl)}" th:src="${user.avatarUrl}"
+                                         data-fallback="/images/avatar-default.svg" th:alt="${'Ảnh đại diện của ' + user.fullName}">
+                                    <span th:unless="${user.avatarUrl != null and !#strings.isEmpty(user.avatarUrl)}"
+                                          th:text="${#strings.substring(user.fullName,0,1)}" aria-hidden="true">U</span>
+                                </span>
+                                <div class="min-w-0"><strong class="d-block text-truncate" th:text="${user.fullName}">Người dùng</strong><div class="small text-secondary text-truncate" th:text="${user.email}">email@example.com</div></div>
+                            </div>
+                        </td>
+                        <td data-label="Vai trò"><span class="hp-badge" th:classappend="${user.role.name() == 'ADMIN' ? ' hp-badge-admin' : ' hp-badge-user'}" th:text="${user.role.name() == 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}">Người dùng</span></td>
+                        <td data-label="Trạng thái"><span class="hp-badge" th:classappend="${user.status.name() == 'ACTIVE' ? ' hp-badge-active' : ' hp-badge-locked'}" th:text="${user.status.name() == 'ACTIVE' ? 'Đang hoạt động' : 'Đã khóa'}">Đang hoạt động</span></td>
+                        <td data-label="Ngày tạo" th:text="${#temporals.format(user.createdAt,'dd/MM/yyyy HH:mm')}">01/01/2026</td>
+                        <td data-label="Thao tác" class="text-end">
+                            <form th:if="${user.email != currentUser.email}" th:action="@{/admin/users/{id}/toggle(id=${user.id})}" method="post"
+                                  th:data-confirm="${user.status.name() == 'ACTIVE' ? 'Tài khoản sẽ không thể đăng nhập cho đến khi được mở khóa.' : 'Tài khoản sẽ có thể đăng nhập trở lại.'}"
+                                  th:data-confirm-title="${user.status.name() == 'ACTIVE' ? 'Khóa tài khoản này?' : 'Mở khóa tài khoản này?'}"
+                                  th:data-confirm-accept="${user.status.name() == 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa'}"
+                                  th:data-confirm-tone="${user.status.name() == 'ACTIVE' ? 'danger' : 'warning'}">
+                                <input type="hidden" name="status" th:value="${user.status.name() == 'ACTIVE' ? 'LOCKED' : 'ACTIVE'}">
+                                <button class="btn btn-sm" type="submit"
+                                        th:classappend="${user.status.name() == 'ACTIVE' ? ' btn-outline-danger' : ' btn-outline-primary'}"
+                                        th:text="${user.status.name() == 'ACTIVE' ? 'Khóa' : 'Mở khóa'}">Khóa</button>
+                            </form>
+                            <span th:if="${user.email == currentUser.email}" class="text-secondary small">Tài khoản hiện tại</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav class="mt-4" th:if="${users.totalPages > 1}" aria-label="Phân trang người dùng">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${users.first ? ' disabled' : ''}">
+                        <a class="page-link" th:if="${!users.first}" th:href="@{/admin/users(q=${q},role=${selectedRole},status=${selectedStatus},page=${users.number - 1})}">Trước</a>
+                        <span class="page-link" th:if="${users.first}" aria-disabled="true">Trước</span>
+                    </li>
+                    <li class="page-item" th:each="pageNumber : ${#numbers.sequence(0, users.totalPages - 1)}" th:classappend="${pageNumber == users.number ? ' active' : ''}">
+                        <a class="page-link" th:href="@{/admin/users(q=${q},role=${selectedRole},status=${selectedStatus},page=${pageNumber})}"
+                           th:text="${pageNumber + 1}" th:aria-current="${pageNumber == users.number ? 'page' : null}">1</a>
+                    </li>
+                    <li class="page-item" th:classappend="${users.last ? ' disabled' : ''}">
+                        <a class="page-link" th:if="${!users.last}" th:href="@{/admin/users(q=${q},role=${selectedRole},status=${selectedStatus},page=${users.number + 1})}">Sau</a>
+                        <span class="page-link" th:if="${users.last}" aria-disabled="true">Sau</span>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </section>
+</main>
+<th:block th:replace="~{fragments :: scripts}"></th:block>
+</body>
+</html>

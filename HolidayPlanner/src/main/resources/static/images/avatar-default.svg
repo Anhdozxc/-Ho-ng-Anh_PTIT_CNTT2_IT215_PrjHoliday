@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Ảnh đại diện mặc định</title>
+  <desc id="desc">Hình người cách điệu trên nền chuyển sắc</desc>
+  <defs>
+    <linearGradient id="bg" x1="24" y1="20" x2="230" y2="238" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366f1"/>
+      <stop offset=".5" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#0891b2"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(202 42) rotate(132) scale(128)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" rx="72" fill="url(#bg)"/>
+  <rect width="256" height="256" rx="72" fill="url(#glow)"/>
+  <circle cx="128" cy="96" r="43" fill="#fff" fill-opacity=".92"/>
+  <path d="M48 224c5-49 36-77 80-77s75 28 80 77" fill="#fff" fill-opacity=".92"/>
+  <path d="M58 49c22-26 53-37 86-31" fill="none" stroke="#fff" stroke-opacity=".32" stroke-width="5" stroke-linecap="round"/>
+</svg>
