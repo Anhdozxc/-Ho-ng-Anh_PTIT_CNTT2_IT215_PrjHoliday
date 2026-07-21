@@ -2,135 +2,187 @@
 
 ## 1. Phạm vi và nguồn sự thật
 
-- Audit ngày 17/07/2026 trên branch `fix/srs-compliance-and-stability`.
-- Thứ tự ưu tiên: `HolidayPlanner_SRS_FINAL.docx` -> `HolidayPlanner_Technical_FINAL.xlsx` -> AC-01..AC-07 -> source trong `src/main`, `src/test`, `pom.xml` và `resources`.
-- Không sử dụng `.class`, `target/classes`, `target/test-classes` hoặc `target/maven-status` làm nguồn khôi phục source.
-- Baseline tái lập: 46 source main, 3 source test, 6 test chạy thành công; 0 failure, 0 error, 0 skipped. Máy audit chỉ có JDK 21, Maven compile với `--release 17`; chạy đúng runtime JDK 17 cần được xác minh riêng.
+- Branch triển khai: `fix/srs-compliance-and-stability`.
+- Base commit của gói nhận: `9ab1d152fb9f4e90cc2501f2969317c7a5fcc80f`.
+- Thứ tự ưu tiên: SRS FINAL → Technical FINAL → AC-01..AC-07 → source thật.
+- Source thật chỉ gồm `src/main`, `src/test`, `pom.xml`, `resources`, `database`, `postman` và tài liệu; không dùng `.class` hoặc `target/maven-status`.
+- Tài liệu yêu cầu trong `../documents` được giữ nguyên.
 
-## 2. Quyết định khi yêu cầu chưa hoàn toàn thống nhất
+## 2. Baseline trước khi sửa
 
-| Chủ đề | Mâu thuẫn/điểm chưa rõ | Quyết định an toàn |
-| --- | --- | --- |
-| Expense amount | SRS ghi số tiền `>= 0`; DTO hiện tại yêu cầu `> 0` | Cho phép `0.00`, cấm số âm, dùng `BigDecimal` scale 2 với `HALF_UP` để service không ném `ArithmeticException`. |
-| Checklist create | Bảng dữ liệu SRS đánh dấu `isDone` bắt buộc; luồng nghiệp vụ nói tạo rồi đánh dấu hoàn thành | Create mặc định `false`, không nhận `done`; trạng thái được cập nhật idempotent bằng `PATCH`. |
-| Destination delete | Bảng chức năng nói thêm/sửa/xóa; UC08 nói điểm đến đã dùng không nên xóa cứng và cho phép ẩn | Dùng soft hide/show; không xóa cứng dữ liệu đang/đã được tham chiếu. |
-| Cross-owner | SRS/AC nói truy cập chéo bị từ chối nhưng không chỉ rõ 403 hay 404 | Theo AC và lệnh triển khai: tồn tại nhưng khác owner trả JSON/HTML 403; ID không tồn tại trả 404. |
-| Trip status | Sơ đồ thể hiện các cạnh trạng thái; source cho phép gán tùy ý | Chỉ cho DRAFT -> PLANNED/CANCELLED; PLANNED -> ONGOING/CANCELLED; ONGOING -> COMPLETED/CANCELLED; terminal state không đổi tiếp. |
-| Profile/avatar | SRS có quản lý hồ sơ, avatar/Cloudinary nhưng không có đặc tả field/API chi tiết | Triển khai tối thiểu họ tên, đổi mật khẩu và avatar; Cloudinary chỉ bật khi đủ credential, không hardcode secret, thiếu cấu hình không làm app dừng. |
-| Login lockout | UC02 nói hệ thống "có thể" tạm khóa sau nhiều lần sai | Không thêm cơ chế lockout tự động ngoài scope; tài khoản do Admin đặt `LOCKED` phải bị từ chối đăng nhập. |
+Baseline audit ban đầu có:
 
-## 3. Endpoint audit trước khi sửa
+- 46 main Java files.
+- 3 test source files.
+- 6 tests pass.
+- Frontend 8 template, một CSS nhỏ, không JavaScript/design system/media/profile hoàn chỉnh.
+- Nhiều class chỉ tồn tại trong `target/` cũ nhưng thiếu source.
+- Child resources chỉ create/delete ở nhiều module.
+- Cross-owner trả 404 thay vì 403.
+- Dashboard upcoming chưa lọc đầy đủ.
+- Chưa có Profile/Avatar/Cloudinary source thật.
+- Postman ít assertion và ID còn phụ thuộc dữ liệu.
 
-### 3.1 Endpoint hiện có
+Baseline này được lưu để truy vết, không phản ánh trạng thái source cuối.
 
-| Nhóm | Method và path |
-| --- | --- |
-| Auth REST | `POST /api/auth/register` |
-| Dashboard REST | `GET /api/dashboard` |
-| Trip REST | `GET /api/trips`, `POST /api/trips`, `GET /api/trips/{id}`, `PUT /api/trips/{id}`, `DELETE /api/trips/{id}` |
-| Itinerary REST | `POST /api/trips/{id}/itinerary`, `DELETE /api/trips/{id}/itinerary/{itemId}` |
-| Expense REST | `POST /api/trips/{id}/expenses`, `DELETE /api/trips/{id}/expenses/{expenseId}` |
-| Checklist REST | `POST /api/trips/{id}/checklist`, `PATCH /api/trips/{id}/checklist/{itemId}/toggle`, `DELETE /api/trips/{id}/checklist/{itemId}` |
-| Booking REST | `POST /api/trips/{id}/bookings`, `DELETE /api/trips/{id}/bookings/{bookingId}` |
-| Admin Destination REST | `GET /api/admin/destinations`, `POST /api/admin/destinations`, `PUT /api/admin/destinations/{id}`, `DELETE /api/admin/destinations/{id}` |
-| Admin User REST | `GET /api/admin/users`, `PATCH /api/admin/users/{id}/toggle` |
-| Auth web | `GET /login`, `POST /login` (Spring Security), `GET /register`, `POST /register`, `POST /logout` |
-| Trip web | `GET /trips`, `GET /trips/new`, `POST /trips`, `GET /trips/{id}`, `GET /trips/{id}/edit`, `POST /trips/{id}`, `POST /trips/{id}/delete` |
-| Trip detail web | create/delete itinerary, expense, booking; create/toggle/delete checklist |
-| Admin web | list/create/hide-show destination; list/lock-unlock user |
+## 3. Quyết định nghiệp vụ khi tài liệu chưa hoàn toàn thống nhất
 
-### 3.2 Endpoint còn thiếu hoặc cần sửa semantics
+| Chủ đề | Quyết định triển khai |
+|---|---|
+| Expense amount | Cho phép `0.00`, cấm số âm, tối đa 13 chữ số nguyên và 2 chữ số thập phân; reject scale sai thay vì làm tròn âm thầm. |
+| Checklist create | Create mặc định `done=false`; thay đổi trạng thái bằng desired-state `PATCH`, idempotent. |
+| Destination delete | Dùng hide/show; không hard-delete destination đã/đang được trip tham chiếu. |
+| Cross-owner | Resource tồn tại nhưng khác owner trả 403; ID không tồn tại trả 404. |
+| Trip state | DRAFT → PLANNED/CANCELLED; PLANNED → ONGOING/CANCELLED; ONGOING → COMPLETED/CANCELLED; terminal state không chuyển tiếp; sửa cùng trạng thái được phép. |
+| Profile/avatar | Triển khai họ tên, đổi mật khẩu, avatar; Cloudinary chỉ bật khi đủ credential và thiếu cấu hình không làm app dừng. |
+| Login lockout | Không thêm lockout tự động ngoài SRS; tài khoản do ADMIN đặt `LOCKED` bị từ chối đăng nhập. |
 
-| Mức | Endpoint cần có/sửa | Gap baseline |
-| --- | --- | --- |
-| P0 | `GET /api/profile` | Chưa có profile module. |
-| P0 | `PUT /api/profile` | Chưa cập nhật họ tên. |
-| P0 | `PUT /api/profile/password` | Chưa kiểm tra mật khẩu hiện tại/BCrypt/xác nhận. |
-| P0 | `POST /api/profile/avatar`, `DELETE /api/profile/avatar` | Chưa có media/Cloudinary/fallback/validation. |
-| P0 | `PUT /api/trips/{id}/itinerary/{itemId}` | Itinerary mới có create/delete. |
-| P0 | `PUT /api/trips/{id}/expenses/{expenseId}` | Expense mới có create/delete. |
-| P0 | `PUT /api/trips/{id}/checklist/{itemId}` | Checklist chưa sửa title/category/dueDate. |
-| P0 | `PATCH /api/trips/{id}/checklist/{itemId}/state` | Toggle hiện tại không idempotent. |
-| P0 | `PUT /api/trips/{id}/bookings/{bookingId}` | Booking mới có create/delete. |
-| P0 | `PATCH /api/trips/{id}/status` hoặc validate status trong `PUT` | Source cho phép mọi transition. |
-| P0 | API 401/403 handlers | Chưa bảo đảm JSON có cấu trúc; có thể redirect/HTML. |
-| P1 | `PATCH /api/admin/destinations/{id}/status` | Baseline dùng `DELETE` cho toggle, không idempotent. |
-| P1 | `PATCH /api/admin/users/{id}/status` | Baseline dùng toggle mơ hồ. |
-| P1 | Search/filter/sort trip/admin lists | Chưa có query params/service/repository tương ứng. |
+## 4. Inventory sau triển khai
 
-## 4. Màn hình và frontend audit trước khi sửa
+| Thành phần | Trạng thái cuối |
+|---|---|
+| Main Java source | 77 files |
+| Test source | 18 files |
+| Thymeleaf templates | 13 |
+| CSS/JS frontend | 5 CSS + 4 JS |
+| Local destination/fallback assets | Có |
+| Real favicon ICO + SVG | Có |
+| Postman | 61 requests, 93 assertions, 25 variables |
+| Browser evidence | 45 pass, 0 fail trong lần chạy đang lưu |
+| Java 17 CI | `.github/workflows/maven-verify.yml` |
 
-Màn hình hiện có: Login, Register, Dashboard, Trip List, Trip Create/Edit, Trip Detail (4 tab), Admin Destination, Admin User.
+## 5. Endpoint cuối
 
-Màn hình/luồng còn thiếu:
+### Public/Auth
 
-- `/profile` cho họ tên, mật khẩu, avatar.
-- Trang lỗi thân thiện 403, 404, 500.
-- UI edit cho itinerary, expense, checklist, booking.
-- UI edit destination và search/filter admin.
-- Search/filter/sort trip list.
-- Remember-me, profile menu, enum tiếng Việt, modal xác nhận dùng chung.
-- Giữ đúng tab sau thao tác, giữ field errors và giá trị nhập khi validation fail.
-- Form edit trip phải giữ destination hiện tại nếu đã inactive và không cho chọn inactive khác.
+- `GET /login`, `POST /login`.
+- `GET /register`, `POST /register`.
+- `POST /logout`.
+- `POST /api/auth/register`.
+- `GET /favicon.ico`.
 
-Baseline frontend chỉ có 8 template, một `fragments.html`, một `app.css` 137 dòng; không có JS hoặc image asset. Form Trip không tải Bootstrap bundle nên navbar mobile không hoạt động. Các trang chưa có design tokens đầy đủ, reduced motion, image fallback, modal focus management, loading state và responsive coverage 375/768/1024/1440/1920.
+### Profile
 
-## 5. Test source và artifact audit trước khi sửa
+- `GET /profile`, `POST /profile`.
+- `POST /profile/password`.
+- `POST /profile/avatar`, `POST /profile/avatar/delete`.
+- `GET /api/profile`, `PUT /api/profile`.
+- `PUT|POST /api/profile/password`.
+- `POST /api/profile/avatar`, `DELETE /api/profile/avatar`.
 
-Source test thật:
+### TripPlan
 
-- `HolidayPlannerApplicationTests`: context load.
-- `TripPlanServiceTest`: create/soft-delete, invalid date, cross-owner.
-- `UserServiceTest`: normalize email + BCrypt, duplicate email.
+- Web list/search/filter/sort/page, create, detail, edit, soft delete.
+- `GET|POST /api/trips`.
+- `GET|PUT|DELETE /api/trips/{id}`.
+- Status được validate trong create/update theo state machine.
 
-Thiếu toàn bộ test MVC/API/MockMvc, security 401/403/CSRF, Profile/Media, TripDetail CRUD/409, Dashboard, Destination, admin status, state transition và inactive destination.
+### Itinerary
 
-Artifact stale phải loại khỏi Git:
+- Web create/update/delete trong Trip detail.
+- `POST /api/trips/{id}/itinerary`.
+- `PUT /api/trips/{id}/itinerary/{itemId}`.
+- `DELETE /api/trips/{id}/itinerary/{itemId}`.
 
-- 83 file dưới `HolidayPlanner/target/`, bao gồm 19 compiled test class nhưng chỉ có 3 test source thật.
-- 11 file IntelliJ dưới `.idea/`.
-- Baseline chưa có `.gitignore`; Maven clean tái tạo `target/` dưới dạng untracked.
+### Expense
 
-## 6. Ma trận alignment
+- Web create/update/delete/filter category.
+- `POST /api/trips/{id}/expenses`.
+- `PUT /api/trips/{id}/expenses/{expenseId}`.
+- `DELETE /api/trips/{id}/expenses/{expenseId}`.
 
-| Requirement | SRS yêu cầu | Source hiện tại (baseline) | Gap | File dự kiến sửa | Test tương ứng | Trạng thái audit |
-| --- | --- | --- | --- | --- | --- | --- |
-| UC01 Đăng ký | Họ tên/email/password; email unique; password >= 8; BCrypt | Có web + REST; normalize email và BCrypt | Thiếu MVC/API validation đầy đủ | `UserService`, auth controllers/DTO | UserService + MockMvc register | PARTIAL |
-| UC02 Login/logout | Session, locked user bị từ chối, rememberMe | Form login/logout; locked mapped disabled | Thiếu remember-me, JSON 401/403 test | `SecurityConfig`, login template | Security MockMvc + locked login | PARTIAL |
-| UC03 TripPlan | CRUD, soft delete, owner, date/budget/people/status | Có CRUD/soft delete/owner query | Cross-owner thành 404; không state machine; thiếu search/filter/sort | `TripPlanService/Repository`, controllers | CRUD/ownership/validation/transitions/inactive destination | PARTIAL |
-| UC04 Itinerary | CRUD, day/time, sort, overlap | Create/read/delete; sort và một phần validation | Thiếu update + overlap 409 + UI edit | `TripDetailService`, repository, REST/web | CRUD/day/time/overlap/cross-owner | FAIL |
-| UC05 Expense | CRUD, category filter, amount >= 0, total | Create/read/delete | Thiếu update/filter; 0 bị cấm; scale unsafe; thiếu spentDate rule | `TripDetailService`, DTO/repository/controllers | CRUD/filter/amount/scale/date | FAIL |
-| UC06 Checklist | CRUD, edit fields, done state | Create/read/toggle/delete | Thiếu update; toggle không idempotent | `TripDetailService`, REST/web | CRUD/state/ownership | FAIL |
-| UC07 Dashboard | USER personal, ADMIN aggregate, upcoming, empty state | Có scope và stats cơ bản | Upcoming còn cancelled/completed; limit in-memory; nguy cơ lazy/N+1 | `TripPlanRepository`, `DashboardService`, UI | owner/admin/exclusion/order/limit | PARTIAL |
-| UC08 Destination Admin | list/search/create/update/hide/show, image validation | REST update + soft hide; web create/hide/show | Thiếu web edit/search, status explicit, image URL/file validation | `DestinationService`, admin controllers/templates | CRUD/search/hide/show/in-use/image | PARTIAL |
-| UC09 BookingNote | CRUD; provider required; code optional; price non-negative | Create/read/delete | Thiếu update; scale unsafe; UI edit | `TripDetailService`, DTO/controllers | CRUD/negative/ownership | FAIL |
-| UC10 User Admin | list/search, role/status filter, lock/unlock, self-lock deny | list/toggle; self-lock có | Thiếu search/filter/idempotent DTO/last-admin test | `UserService`, admin controllers/templates | locked/self-lock/last-admin/search/filter | PARTIAL |
-| Profile | User/Admin quản lý hồ sơ cá nhân | Chưa có | Thiếu toàn bộ | new profile DTO/controller/template + `UserService` | profile get/update/password | FAIL |
-| Avatar/Cloudinary | Avatar/media qua Cloudinary | Chưa có | Thiếu toàn bộ; phải optional/fallback | `UserAccount`, new `media/*`, profile controllers/config | validator/storage unavailable/replacement rollback | FAIL |
-| NFR-01 | BCrypt, RBAC, service ownership, API 401/403, web CSRF | BCrypt/RBAC/CSRF một phần | 401/403 JSON và 403 cross-owner sai; thiếu handler web/API | `SecurityConfig`, handlers/services | MockMvc 401/403/CSRF/owner | PARTIAL |
-| NFR-02 | Date, people, non-negative money, itinerary range | Có một phần DTO/service validation | Scale, overlap, spentDate, state chưa đồng bộ | DTO + services | validation matrix | PARTIAL |
-| NFR-03 | Dashboard/list < 3s, owner queries | Owner queries có | Upcoming fetch/limit/N+1 cần sửa | repositories/services | query behavior + limit | PARTIAL |
-| NFR-04 | Responsive, empty/error/success, delete confirm | Có Bootstrap cơ bản | Thiếu premium responsive, modal, error pages, accessibility | templates/CSS/JS | MVC render + manual viewport | FAIL |
-| NFR-05 | 3 layer, DTO/validation/enum, README/Postman | Kiến trúc 3 layer có | DTO/API/docs/test chưa đủ | toàn bộ module + docs/postman | build + contract tests | PARTIAL |
-| NFR-06 | Java 17+, Maven, MySQL 8, browser hiện đại | `release 17`, MySQL config | Chưa chạy runtime JDK 17/MySQL sạch | `pom.xml`, properties, README | package + MySQL smoke | PARTIAL |
-| NFR-07 | Test module; không còn Critical/High | 6 test pass | Coverage chức năng/security rất thấp | `src/test` | full suite | FAIL |
-| AC-01 | Register/login/BCrypt/locked | Core có | Thiếu integration evidence | auth/security | API + web integration | PARTIAL |
-| AC-02 | Owner only; cross-owner denied | Owner query có | Sai status 404 thay vì 403 | trip services | cross-owner 403 | FAIL |
-| AC-03 | Full CRUD 5 aggregate types | Trip có; child resources partial | Thiếu update nhiều module | services/controllers/UI | CRUD matrix | FAIL |
-| AC-04 | Dashboard 3 stats + upcoming | Có stats | Upcoming filter/limit sai | dashboard repository/service | dashboard suite | PARTIAL |
-| AC-05 | Admin Destination/User; USER denied | Role guard có | Admin CRUD/search/status chưa đủ; thiếu JSON evidence | admin modules | ADMIN 200/USER 403 | PARTIAL |
-| AC-06 | Postman/manual smoke; no Critical/High | Collection có baseline | Thiếu assertions/dynamic IDs/negative cases và bằng chứng chạy | postman + guide | Newman/manual log | FAIL |
-| AC-07 | IntelliJ/MySQL/README/seed/run guide | Seed/MySQL/README cơ bản | Config secret/default/error handling và docs chưa phản ánh thực tế | properties/README/docs | clean clone/run smoke | PARTIAL |
+### Checklist
 
-## 7. Kế hoạch file và test ưu tiên
+- Web create/update/desired-state/delete.
+- `POST /api/trips/{id}/checklist`.
+- `PUT /api/trips/{id}/checklist/{itemId}`.
+- `PATCH /api/trips/{id}/checklist/{itemId}/state`.
+- Alias toggle cũ được giữ để tương thích.
+- `DELETE /api/trips/{id}/checklist/{itemId}`.
 
-1. Repository hygiene + safe config.
-2. API security JSON + ownership 403 + exception contract.
-3. Profile/password/avatar và optional media storage.
-4. Full CRUD/validation cho itinerary, expense, checklist, booking.
-5. Trip state machine, inactive destination và dashboard query.
-6. Admin search/filter/idempotent status và trip search/filter/sort.
-7. Luxury light design system, responsive/accessibility, modal/tab state.
-8. Unit/service/MockMvc regression tests, Postman và tài liệu bằng chứng.
+### BookingNote
 
-Trạng thái trong bảng sẽ được cập nhật theo bằng chứng test/build/smoke thực tế; không chuyển thành PASS chỉ dựa trên việc có code.
+- Web create/update/delete.
+- `POST /api/trips/{id}/bookings`.
+- `PUT /api/trips/{id}/bookings/{bookingId}`.
+- `DELETE /api/trips/{id}/bookings/{bookingId}`.
+
+### Dashboard
+
+- `GET /dashboard`.
+- `GET /api/dashboard`.
+
+### Admin Destination
+
+- Web list/search/filter/page/create/update/hide/show/image.
+- `GET|POST /api/admin/destinations`.
+- `PUT|DELETE /api/admin/destinations/{id}`.
+- `PATCH /api/admin/destinations/{id}/status`.
+- `POST|DELETE /api/admin/destinations/{id}/image`.
+
+### Admin User
+
+- Web list/search/filter/page/lock/unlock.
+- `GET /api/admin/users`.
+- `PATCH /api/admin/users/{id}/status`.
+- Alias `/toggle` được giữ để tương thích.
+
+## 6. Final UC matrix
+
+| Requirement | SRS yêu cầu | Implementation | Test/evidence | Final status |
+|---|---|---|---|---|
+| UC01 Register | Name/email/password, unique email, BCrypt | DTO + service + web/API | DTO/service/MockMvc | PASS |
+| UC02 Login/logout | Session, locked, remember-me | Spring Security + custom user details | Security/web tests | PASS |
+| UC03 TripPlan | CRUD, owner, validation, status | Full web/API, soft delete, state machine, paging | Service/API/web tests | PASS |
+| UC04 Itinerary | CRUD, day/time/sort/overlap | Full CRUD; overlap conflict | Service/API tests | PASS |
+| UC05 Expense | CRUD, category, amount/total | Full CRUD/filter/BigDecimal | Service/API tests | PASS |
+| UC06 Checklist | CRUD and done state | Full CRUD + idempotent state | Service/API tests | PASS |
+| UC07 Dashboard | Personal/admin totals/upcoming | Scoped repository queries, top 5, excluded statuses | Service/API + browser | PASS |
+| UC08 Destination Admin | Search/create/update/hide/show/image | Web/API + URL/upload/fallback | Service/API/web tests | PASS |
+| UC09 BookingNote | CRUD, provider/code/price | Full web/API CRUD | Service/API tests | PASS |
+| UC10 User Admin | Search/filter/lock/unlock | Web/API desired state, self/last-admin guard | Service/API tests | PASS |
+| Profile | Personal profile/password | Web/API | Service/API/web tests | PASS |
+| Avatar/Cloudinary | Managed media | Optional provider, validation, rollback/fallback | Media tests | PASS |
+
+## 7. NFR và AC matrix
+
+| ID | Kết quả | Bằng chứng/ghi chú |
+|---|---|---|
+| NFR-01 Security | PASS | BCrypt, RBAC, 401/403 JSON, service ownership, CSRF web. |
+| NFR-02 Validation | PASS | DTO + service defensive validation, money/date/time/media. |
+| NFR-03 Response/query scope | PASS cho phạm vi môn học | Repository paging/top-five, `open-in-view=false`, batch fetch. Không có load benchmark production. |
+| NFR-04 UX/responsive | PASS với evidence hiện có | Luxury light design system; browser JSON 45/45. Final enhanced script nên chạy lại. |
+| NFR-05 Maintainability | PASS | Controller/service/repository, DTO, reusable fragments/components, docs/Postman. |
+| NFR-06 Java/Maven/MySQL | CONDITIONAL FINAL VERIFY | Java target 17, previous MySQL smoke reported; Java 17 CI added. |
+| NFR-07 Testing | CONDITIONAL FINAL VERIFY | Previous run reported 125/125; final rerun needed after favicon test. |
+| AC-01 | PASS | Register/login/BCrypt/locked implemented/tested. |
+| AC-02 | PASS | Ownership and cross-owner 403. |
+| AC-03 | PASS | Full CRUD Trip + four child aggregates. |
+| AC-04 | PASS | Dashboard stats and upcoming. |
+| AC-05 | PASS | ADMIN destination/user, USER denied. |
+| AC-06 | CONDITIONAL FINAL VERIFY | Postman collection complete; live Runner output not included. |
+| AC-07 | PASS implementation / final environment check | README, seed, MySQL config, scripts and CI present. |
+
+## 8. Frontend alignment
+
+- Light theme only.
+- Shared design tokens, components, page styles and responsive rules.
+- Cinematic hero, premium cards, timeline, budget/checklist progress, admin tables/mobile cards.
+- Scroll reveal, stagger, counters, parallax and sticky navbar.
+- `prefers-reduced-motion` support.
+- Accessible confirmation dialog with focus trap and Escape.
+- Inline validation, loading state, double-submit prevention, dirty-form guard and image preview.
+- Local destination/fallback images; legacy Unsplash URL is only recognized for seed migration.
+- Real ICO favicon plus SVG modern icon.
+- Browser script verifies overflow, reveal visibility, broken images, favicon, console and network.
+
+## 9. Verification status
+
+Evidence and limitations are recorded in:
+
+- `docs/FINAL_VERIFICATION_REPORT.md`.
+- `docs/POSTMAN_EXECUTION_REPORT.md`.
+- `docs/RELEASE_CHECKLIST.md`.
+- `docs/screenshots/browser-smoke.json`.
+
+Implementation alignment is complete. Submission readiness remains conditional on one final clean Maven/Java 17 run and a live core Postman run; those results must not be fabricated.

@@ -40,13 +40,15 @@
         </div>
     </section>
 
-    <div class="context-note context-note-info mt-3" th:if="${!editable}" role="status">
-        <span aria-hidden="true">i</span>
-        <div><strong>Chế độ hỗ trợ chỉ đọc</strong><p>Quản trị viên có thể xem để hỗ trợ nhưng không thể thay đổi dữ liệu riêng của người dùng.</p></div>
-    </div>
-    <div class="context-note context-note-danger mt-3" th:if="${overBudget}" role="alert">
-        <span aria-hidden="true">!</span>
-        <div><strong>Đã vượt ngân sách</strong><p>Tổng chi hiện cao hơn ngân sách dự kiến. Hãy rà soát các khoản chi trước khi tiếp tục.</p></div>
+    <div th:if="${!editable or overBudget}" style="padding-bottom: 3.4rem;">
+        <div class="context-note context-note-info mt-3" th:if="${!editable}" role="status">
+            <span aria-hidden="true">i</span>
+            <div><strong>Chế độ hỗ trợ chỉ đọc</strong><p>Quản trị viên có thể xem để hỗ trợ nhưng không thể thay đổi dữ liệu riêng của người dùng.</p></div>
+        </div>
+        <div class="context-note context-note-danger mt-3" th:if="${overBudget}" role="alert">
+            <span aria-hidden="true">!</span>
+            <div><strong>Đã vượt ngân sách</strong><p>Tổng chi hiện cao hơn ngân sách dự kiến. Hãy rà soát các khoản chi trước khi tiếp tục.</p></div>
+        </div>
     </div>
 
     <section class="trip-detail-stats" aria-label="Tóm tắt chuyến đi">

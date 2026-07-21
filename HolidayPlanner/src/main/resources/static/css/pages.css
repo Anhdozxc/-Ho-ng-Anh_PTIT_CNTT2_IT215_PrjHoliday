@@ -58,11 +58,11 @@
 .auth-visual--login::before { background-image: url("/images/destinations/da-nang.svg"); }
 .auth-visual--register::before { background-image: url("/images/destinations/da-lat.svg"); }
 .auth-visual::after { position: absolute; inset: 0; z-index: -1; content: ""; background: linear-gradient(0deg, rgba(25,29,24,.88), rgba(25,29,24,.12) 78%), linear-gradient(90deg, rgba(25,29,24,.26), transparent); }
-.auth-visual h1 { max-width: 39rem; color: var(--hp-color-on-image); font-family: var(--hp-font-display); font-size: clamp(2.35rem, 5vw, 4.5rem); font-weight: 500; line-height: 1.01; }
+.auth-visual h1 { max-width: 39rem; color: var(--hp-color-on-image); font-family: var(--hp-font-display); font-size: clamp(2.15rem, 4.8vw, 4.25rem); font-weight: 500; line-height: 1.12; letter-spacing: -0.012em; overflow-wrap: anywhere; }
 .auth-visual p { max-width: 36rem; color: rgba(255,255,255,.8); }
 .auth-form { display: flex; flex-direction: column; justify-content: center; padding: clamp(2rem, 5vw, 4.5rem); }
 .auth-wordmark { display: inline-flex; align-items: center; gap: .7rem; margin-bottom: clamp(2rem, 6vw, 4.5rem); color: var(--hp-color-ink); text-decoration: none; }
-.auth-form h2 { font-family: var(--hp-font-display); font-size: clamp(2rem, 4vw, 3rem); font-weight: 500; }
+.auth-form h2 { font-family: var(--hp-font-display); font-size: clamp(1.9rem, 3.8vw, 2.85rem); font-weight: 500; line-height: 1.12; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 .auth-benefits { display: grid; gap: .55rem; margin-top: 1.5rem; padding: 0; list-style: none; color: rgba(255,255,255,.78); font-size: .88rem; }
 .auth-benefits li { display: flex; gap: .55rem; align-items: center; }
 .auth-benefits li::before { width: 1.25rem; height: 1.25rem; display: grid; flex: 0 0 auto; place-items: center; content: ""; border: 1px solid rgba(255,255,255,.7); border-radius: 50%; }

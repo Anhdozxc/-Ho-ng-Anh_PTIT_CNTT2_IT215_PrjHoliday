@@ -57,7 +57,7 @@ public class DestinationService {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), 50);
         return repository.search(normalizedQuery, active,
-                PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "name")));
+                PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "updatedAt")));
     }
 
     @Transactional(readOnly = true)

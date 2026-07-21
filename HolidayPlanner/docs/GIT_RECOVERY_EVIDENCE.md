@@ -1,60 +1,39 @@
 # Git Recovery Evidence
 
-**Ngày ghi nhận:** 17/07/2026  
-**Thư mục làm việc:** `HolidayPlanner_Source_FINAL`  
+**Ngày ghi nhận:** 17/07/2026
+**Thư mục làm việc:** `HolidayPlanner_Source_FINAL`
 **Remote:** `https://github.com/Anhdozxc/-Ho-ng-Anh_PTIT_CNTT2_IT215_PrjHoliday.git`
 
-## Lệnh đã chạy
+## Trạng thái trước handoff ChatGPT cuối
 
-```text
-git status
-git branch --show-current
-git log --oneline --decorate -10
-git remote -v
-git rev-parse HEAD
-git ls-remote --heads origin
-```
-
-## Kết quả
-
-### git status
+### Branch và status
 
 ```text
 On branch fix/srs-compliance-and-stability
 Your branch is up to date with 'origin/fix/srs-compliance-and-stability'.
-nothing to commit, working tree clean
 ```
 
-### git branch --show-current
+Sau khi `.tools/` được ignore đúng, working tree local đã sạch trước khi tạo clean ZIP.
+
+### Commit history
 
 ```text
-fix/srs-compliance-and-stability
+9ab1d15 (HEAD -> fix/srs-compliance-and-stability, origin/fix/srs-compliance-and-stability) chore: ignore local Cursor tools
+270ecdf chore: ignore local Cursor tooling
+9f26908 Add favicon link to HTML, update security config for favicon access, and enhance browser smoke tests
+1c0328e (origin/main) upload
 ```
 
-### git log --oneline --decorate -10
+### HEAD đầy đủ
 
 ```text
-1c0328e (HEAD -> fix/srs-compliance-and-stability, origin/main, origin/fix/srs-compliance-and-stability) upload
+9ab1d152fb9f4e90cc2501f2969317c7a5fcc80f
 ```
 
-### git remote -v
+### Remote branch
 
 ```text
-origin  https://github.com/Anhdozxc/-Ho-ng-Anh_PTIT_CNTT2_IT215_PrjHoliday.git (fetch)
-origin  https://github.com/Anhdozxc/-Ho-ng-Anh_PTIT_CNTT2_IT215_PrjHoliday.git (push)
-```
-
-### git rev-parse HEAD
-
-```text
-1c0328ebbc487bc62712f410c534b29ea1e325cd
-```
-
-### git ls-remote --heads origin
-
-```text
-1c0328ebbc487bc62712f410c534b29ea1e325cd  refs/heads/fix/srs-compliance-and-stability
-1c0328ebbc487bc62712f410c534b29ea1e325cd  refs/heads/main
+9ab1d152fb9f4e90cc2501f2969317c7a5fcc80f  refs/heads/fix/srs-compliance-and-stability
 ```
 
 ## Kết luận
@@ -62,11 +41,9 @@ origin  https://github.com/Anhdozxc/-Ho-ng-Anh_PTIT_CNTT2_IT215_PrjHoliday.git (
 | Hạng mục | Trạng thái |
 |---|---|
 | Local branch | `fix/srs-compliance-and-stability` |
-| Local HEAD | `1c0328ebbc487bc62712f410c534b29ea1e325cd` |
-| Remote branch `fix/srs-compliance-and-stability` | Tồn tại, cùng SHA |
-| Remote branch `main` | Tồn tại, cùng SHA |
-| Working tree | Sạch |
-| Cần push recovery | Không — remote đã đồng bộ |
-| Cần tạo branch mới | Không — branch local đã tồn tại |
+| Remote feature branch | Tồn tại và đã đồng bộ tại `9ab1d15...` trước handoff cuối |
+| Remote `main` | Vẫn ở `1c0328e...` trước merge |
+| Force-push/reset | Không thực hiện |
+| Pull Request | Chỉ tạo/merge sau khi final Maven/Postman verification xanh |
 
-Không thực hiện `git reset --hard`, force-push, hay clone đè. Tiếp tục phát triển trên branch hiện tại.
+Gói ChatGPT cuối được tạo từ source của commit trên và có thêm thay đổi chưa có commit SHA. Sau khi chép gói vào repository local, cần commit/push theo `docs/CHATGPT_FINAL_HANDOFF.md` rồi lấy SHA mới làm final SHA.

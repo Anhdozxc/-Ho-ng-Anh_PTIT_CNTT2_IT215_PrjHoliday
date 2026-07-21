@@ -35,7 +35,11 @@ HolidayPlanner/
 ├── database/
 │   ├── holiday_planner.sql
 │   └── 20260716_add_media_columns.sql
+├── docs/                  Alignment, test, release và browser evidence
 ├── postman/HolidayPlanner.postman_collection.json
+├── scripts/
+│   ├── browser-smoke.mjs
+│   └── final-verify.ps1
 ├── src/main/java/vn/edu/ptit/holidayplanner/
 │   ├── api/          REST controllers, mapper và error handler
 │   ├── config/       Security, Cloudinary và demo seed
@@ -314,6 +318,29 @@ MySQL runtime smoke:
 
 Cloudinary smoke nên xác minh upload, replace, delete cho cả avatar và destination, đồng thời thử file sai định dạng và file lớn hơn 5 MB. Không bật request media live nếu chưa có file test phù hợp.
 
+## Kiểm chứng cuối và CI
+
+Chạy build/test chuẩn trên Windows từ thư mục này:
+
+```powershell
+.\scripts\final-verify.ps1
+```
+
+Script lưu raw log tạm trong `target/verification/` nên không bị commit. Có thể thêm Postman khi ứng dụng đang chạy và Newman đã cài:
+
+```powershell
+.\scripts\final-verify.ps1 -RunPostman
+```
+
+Browser smoke dùng Chrome DevTools Protocol; xem `docs/screenshots/README.md`. Các tài liệu bằng chứng:
+
+- `docs/FINAL_VERIFICATION_REPORT.md`.
+- `docs/POSTMAN_EXECUTION_REPORT.md`.
+- `docs/RELEASE_CHECKLIST.md`.
+- `docs/screenshots/browser-smoke.json`.
+
+Repository có workflow `.github/workflows/maven-verify.yml` chạy `mvn clean test` và `mvn package` bằng Temurin Java 17 khi push branch `main`, `fix/**` hoặc mở pull request. Chỉ coi bản nộp sẵn sàng khi local build hoặc workflow này xanh và Postman core không có assertion failed.
+
 ## Bảo mật và phân quyền
 
 - `/login`, `/register`, static assets và `POST /api/auth/register` là public.
@@ -359,6 +386,6 @@ Dừng tiến trình cũ hoặc chạy với `--server.port=8081`, đồng thờ
 
 Ba tài liệu yêu cầu nằm tại `../documents` và không được ứng dụng chỉnh sửa. SHA-256 đã xác minh:
 
-- `HolidayPlanner_SRS_FINAL.docx`: `8A163AA78914C58BAE7AD48B34628DCE2DF93DDB0169B01F441F92D0081DC3CE`.
+- `HolidayPlanner_SRS_FINAL.docx`: `A9559BF25B91BB286C6E96FB490A96039B33F4BC2D575C0AA654CBF59DB6A90F`.
 - `HolidayPlanner_Technical_FINAL.xlsx`: `302BF7C8CD3C753ACC58CFFE0B1F094A25CAA37F8C77303D249D5191DBF97D5C`.
 - `HolidayPlanner_Calendar_FINAL.xlsx`: `D3C8B4DEB9E1A9E244EAEBE3DD3435603DBD78C0DD93B334E8D5582055CC0C43`.

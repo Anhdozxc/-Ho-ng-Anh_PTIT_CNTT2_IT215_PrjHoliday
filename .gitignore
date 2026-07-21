@@ -9,6 +9,11 @@
 *.ipr
 *.iws
 
+# Cursor / local agent tooling
+.tools/
+.agents/
+.codex-tmp/
+
 # Logs, reports and temporary files
 *.log
 *.tmp
@@ -17,7 +22,6 @@
 *.swo
 hs_err_pid*
 replay_pid*
-.codex-tmp/
 
 # Local environment and secret-bearing configuration
 .env
@@ -30,8 +34,3 @@ replay_pid*
 .DS_Store
 Thumbs.db
 Desktop.ini
-if (-not (Select-String -Path .gitignore -Pattern '^\.tools/$' -Quiet)) {
-    Add-Content .gitignore "`n# Local Cursor tooling`n.tools/"
-}
-# Local Cursor tools
-.tools/

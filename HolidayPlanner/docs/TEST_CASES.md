@@ -74,11 +74,15 @@ Tài liệu này bám theo SRS FINAL, AC-01..AC-07 và contract REST hiện tạ
 | UI-04 | Tất cả | Admin tables/mobile cards | Search/filter/action đúng role; mobile không tràn ngang |
 | UI-05 | Tất cả | Keyboard/reduced motion | Focus rõ, icon có accessible name, heading hợp lý; animation giảm khi `prefers-reduced-motion` |
 | UI-06 | Browser | Console/network | Không JavaScript error, không request asset 404, CSRF web không bị phá |
+| UI-07 | Auto/Browser | `GET /favicon.ico` và favicon links | Public `200`, content type ảnh/icon, network không còn favicon 404 |
+| UI-08 | Browser | Full-page screenshot với reveal/lazy image | Script cuộn toàn trang; `unrevealed=0`, `brokenImages=0` |
 | ERR-01 | Browser/API | 403/404/500 | Web có trang thân thiện, không stack trace; API có JSON error contract |
 
 ## Lệnh regression
 
 ```bash
+.\scripts\final-verify.ps1
+# Hoặc chạy riêng:
 mvn clean test
 mvn clean package
 newman run postman/HolidayPlanner.postman_collection.json

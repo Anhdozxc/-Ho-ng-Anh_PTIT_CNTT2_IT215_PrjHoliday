@@ -5,6 +5,7 @@ import com.cloudinary.utils.ObjectUtils;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import vn.edu.ptit.holidayplanner.media.CloudinaryImageStorageService;
 import vn.edu.ptit.holidayplanner.media.ImageFileValidator;
 import vn.edu.ptit.holidayplanner.media.ImageReplacementCoordinator;
@@ -15,10 +16,17 @@ import vn.edu.ptit.holidayplanner.media.UnavailableImageStorageService;
 @EnableConfigurationProperties(CloudinaryProperties.class)
 public class MediaStorageConfiguration {
     @Bean
-    public ImageStorageService imageStorageService(CloudinaryProperties properties) {
+    public ImageStorageService imageStorageService(CloudinaryProperties properties, Environment env) {
+        String cloudinaryUrl = env.getProperty("CLOUDINARY_URL");
+        if (cloudinaryUrl != null && !cloudinaryUrl.isBlank()) {
+            Cloudinary cloudinary = new Cloudinary(cloudinaryUrl);
+            return new CloudinaryImageStorageService(cloudinary, properties.getFolder());
+        }
+
         if (!properties.isConfigured()) {
             return new UnavailableImageStorageService();
         }
+
         Cloudinary cloudinary = new Cloudinary(ObjectUtils.asMap(
                 "cloud_name", properties.getCloudName(),
                 "api_key", properties.getApiKey(),

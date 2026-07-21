@@ -7,16 +7,18 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Browsers often request {@code /favicon.ico} even when templates declare SVG icons.
- * Serve the bundled SVG asset to avoid 404 noise in network logs.
+ * Serves a real multi-size ICO file for browsers that request {@code /favicon.ico}.
+ * The SVG icon declared in the shared fragment remains available for modern browsers.
  */
 @Controller
 public class FaviconController {
 
+    private static final MediaType ICON_MEDIA_TYPE = MediaType.parseMediaType("image/x-icon");
+
     @GetMapping("/favicon.ico")
     public ResponseEntity<ClassPathResource> favicon() {
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType("image/svg+xml"))
-                .body(new ClassPathResource("static/images/favicon.svg"));
+                .contentType(ICON_MEDIA_TYPE)
+                .body(new ClassPathResource("static/favicon.ico"));
     }
 }

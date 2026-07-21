@@ -127,12 +127,41 @@ const setViewport = (width, height, mobile = false) => client.send('Emulation.se
   screenHeight: height
 });
 
+/**
+ * Scroll through the whole document before a full-page screenshot. This triggers
+ * IntersectionObserver reveals and lazy-loaded images, so evidence does not contain
+ * large blank areas simply because content started below the initial viewport.
+ */
+const settlePageForCapture = async viewportHeight => {
+  await evaluate('window.scrollTo(0, 0)');
+  const pageHeight = await evaluate('Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)');
+  const step = Math.max(320, Math.floor(viewportHeight * .72));
+  for (let y = 0; y < pageHeight; y += step) {
+    await evaluate(`window.scrollTo(0, ${y})`);
+    await delay(90);
+  }
+  await evaluate(`window.scrollTo(0, ${Math.max(pageHeight - viewportHeight, 0)})`);
+  await delay(180);
+  await evaluate(`Promise.all([...document.images].map(image => {
+    if (image.complete) return Promise.resolve();
+    return new Promise(resolve => {
+      const finish = () => resolve();
+      image.addEventListener('load', finish, {once: true});
+      image.addEventListener('error', finish, {once: true});
+      setTimeout(finish, 1800);
+    });
+  }))`);
+  await evaluate('window.scrollTo(0, 0)');
+  await delay(300);
+};
+
 const checks = [];
 const record = (name, passed, detail = '') => checks.push({name, passed: Boolean(passed), detail});
 
 const capture = async (name, width, height, mobile = false) => {
   await setViewport(width, height, mobile);
-  await delay(900);
+  await delay(500);
+  await settlePageForCapture(height);
   const layout = await client.send('Page.getLayoutMetrics');
   const content = layout.cssContentSize || layout.contentSize;
   const screenshot = await client.send('Page.captureScreenshot', {
@@ -147,10 +176,14 @@ const capture = async (name, width, height, mobile = false) => {
     title: document.title,
     overflow: document.documentElement.scrollWidth > window.innerWidth,
     width: window.innerWidth,
-    headings: document.querySelectorAll('h1').length
+    headings: document.querySelectorAll('h1').length,
+    unrevealed: document.querySelectorAll('.hp-reveal-pending:not(.is-revealed)').length,
+    brokenImages: [...document.images].filter(image => image.complete && image.naturalWidth === 0).length
   })`);
   record(`${name}: no horizontal overflow`, !metrics.overflow, `${metrics.path} @ ${metrics.width}px`);
   record(`${name}: page has title and h1`, Boolean(metrics.title) && metrics.headings > 0, metrics.title);
+  record(`${name}: all reveal content became visible`, metrics.unrevealed === 0, `${metrics.unrevealed} unrevealed`);
+  record(`${name}: no broken images`, metrics.brokenImages === 0, `${metrics.brokenImages} broken`);
 };
 
 const checkViewport = async (name, width, height) => {
@@ -180,6 +213,11 @@ const login = async ([email, password]) => {
 };
 
 await navigate('/login');
+const faviconCheck = await evaluate(`fetch('/favicon.ico', {credentials: 'same-origin'})
+  .then(response => ({ok: response.ok, status: response.status, type: response.headers.get('content-type') || ''}))
+  .catch(error => ({ok: false, status: 0, type: error.message}))`);
+record('favicon is public and served as an icon', faviconCheck.ok && faviconCheck.status === 200
+  && faviconCheck.type.toLowerCase().includes('image/'), `${faviconCheck.status} ${faviconCheck.type}`);
 record('login form invalid without credentials', !(await evaluate("document.querySelector('form').checkValidity()")));
 await capture('login-desktop', 1440, 900);
 await capture('login-mobile', 375, 812, true);
