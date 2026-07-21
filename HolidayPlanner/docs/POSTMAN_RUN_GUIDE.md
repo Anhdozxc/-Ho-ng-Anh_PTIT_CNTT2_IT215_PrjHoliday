@@ -2,6 +2,8 @@
 
 Collection: `../postman/HolidayPlanner.postman_collection.json`.
 
+Trạng thái audit/lần chạy cuối được ghi tại `POSTMAN_EXECUTION_REPORT.md`; không coi việc import thành công là bằng chứng collection đã chạy live.
+
 ## Điều kiện trước khi chạy
 
 1. MySQL 8 đang hoạt động và ứng dụng đã khởi động tại `http://localhost:8080`.

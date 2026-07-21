@@ -20,19 +20,29 @@ public class CloudinaryImageStorageService implements ImageStorageService {
 
     @Override
     public StoredImage upload(MultipartFile file, ImageUploadKind kind) {
-        String publicId = rootFolder + "/" + kind.folder() + "/" + UUID.randomUUID();
+        String uploadFolder = rootFolder + "/" + kind.folder();
+        String publicId = UUID.randomUUID().toString();
         Map<String, Object> options = new HashMap<>();
         options.put("resource_type", "image");
+        options.put("folder", uploadFolder);
         options.put("public_id", publicId);
         options.put("overwrite", false);
         options.put("unique_filename", false);
+        options.put("use_filename", false);
         options.put("transformation", kind.transformation());
 
         try {
             Map<?, ?> result = cloudinary.uploader().upload(file.getBytes(), options);
-            return new StoredImage(value(result.get("secure_url")), value(result.get("public_id")));
+            String secureUrl = value(result.get("secure_url"));
+            String uploadedPublicId = value(result.get("public_id"));
+            if (secureUrl == null || uploadedPublicId == null) {
+                throw new ImageStorageException("Cloudinary phản hồi không hợp lệ: thiếu secure_url hoặc public_id");
+            }
+            return new StoredImage(secureUrl, uploadedPublicId);
         } catch (IOException | RuntimeException exception) {
-            throw new ImageStorageException("Không thể tải ảnh lên Cloudinary. Ảnh hiện tại vẫn được giữ nguyên", exception);
+            throw new ImageStorageException(
+                    "Không thể tải ảnh lên Cloudinary. Ảnh hiện tại vẫn được giữ nguyên. Kiểm tra lại CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET và kết nối mạng",
+                    exception);
         }
     }
 

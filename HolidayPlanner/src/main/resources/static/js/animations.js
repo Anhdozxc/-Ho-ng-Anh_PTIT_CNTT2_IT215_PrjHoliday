@@ -7,7 +7,7 @@
 
   document.querySelectorAll('[data-stagger]').forEach(group => {
     [...group.children].forEach((child, index) => {
-      child.style.setProperty('--hp-stagger-index', String(index));
+      child.style.transitionDelay = `${index * 70}ms`;
       revealItems.push(child);
     });
   });

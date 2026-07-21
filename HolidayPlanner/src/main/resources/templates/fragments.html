@@ -2,7 +2,8 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="styles">
-    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}" sizes="any">
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
     <link th:href="@{/webjars/bootstrap/5.3.3/css/bootstrap.min.css}" rel="stylesheet">
     <link th:href="@{/css/design-tokens.css}" rel="stylesheet">
     <link th:href="@{/css/app.css}" rel="stylesheet">

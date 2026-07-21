@@ -63,6 +63,14 @@ class WebErrorAndAuthenticationTest {
     }
 
     @Test
+    void faviconIsPublicAndServedWithIconContentType() throws Exception {
+        mockMvc.perform(get("/favicon.ico"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.parseMediaType("image/x-icon")));
+    }
+
+    @Test
     void unauthenticatedWebRequestRedirectsToLogin() throws Exception {
         mockMvc.perform(get("/dashboard"))
                 .andExpect(status().isFound())
