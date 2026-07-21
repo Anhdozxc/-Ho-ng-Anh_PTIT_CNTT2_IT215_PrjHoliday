@@ -50,8 +50,9 @@ class CloudinaryImageStorageServiceTest {
         verify(uploader).upload(any(byte[].class), options.capture());
         assertThat(options.getValue().get("resource_type")).isEqualTo("image");
         assertThat(options.getValue().get("overwrite")).isEqualTo(false);
+        assertThat(options.getValue().get("folder")).isEqualTo("holiday-planner/avatars");
         assertThat(options.getValue().get("public_id").toString())
-                .startsWith("holiday-planner/avatars/")
+                .matches("^[0-9a-fA-F-]{36}$")
                 .doesNotContain("untrusted file name");
         assertThat(options.getValue().get("transformation").toString()).contains("g_face");
     }

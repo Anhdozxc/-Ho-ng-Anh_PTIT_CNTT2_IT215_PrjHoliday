@@ -1,6 +1,7 @@
 package vn.edu.ptit.holidayplanner.media;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 import vn.edu.ptit.holidayplanner.config.CloudinaryProperties;
 import vn.edu.ptit.holidayplanner.config.MediaStorageConfiguration;
 
@@ -8,12 +9,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class MediaStorageConfigurationTest {
     private final MediaStorageConfiguration configuration = new MediaStorageConfiguration();
+    private final MockEnvironment env = new MockEnvironment();
 
     @Test
     void usesUnavailableFallbackWhenCloudinaryIsNotConfigured() {
         CloudinaryProperties properties = new CloudinaryProperties();
 
-        ImageStorageService service = configuration.imageStorageService(properties);
+        ImageStorageService service = configuration.imageStorageService(properties, env);
 
         assertThat(service).isInstanceOf(UnavailableImageStorageService.class);
         assertThat(service.isAvailable()).isFalse();
@@ -27,7 +29,7 @@ class MediaStorageConfigurationTest {
         properties.setApiSecret("test-only-secret");
         properties.setFolder("holiday-planner-test");
 
-        ImageStorageService service = configuration.imageStorageService(properties);
+        ImageStorageService service = configuration.imageStorageService(properties, env);
 
         assertThat(service).isInstanceOf(CloudinaryImageStorageService.class);
         assertThat(service.isAvailable()).isTrue();
